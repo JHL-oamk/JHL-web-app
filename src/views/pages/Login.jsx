@@ -16,9 +16,7 @@ export const Login = ({ authViewModel }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!loginForm.validateForm()) {
-      return;
-    }
+    if (!loginForm.validateForm()) return;
 
     const result = await authViewModel.login(
       loginForm.formData.email,
@@ -28,7 +26,7 @@ export const Login = ({ authViewModel }) => {
     if (result.success) {
       setShowSuccess(true);
       loginForm.resetForm();
-      // Redirect to dashboard after 1.5 seconds
+
       setTimeout(() => {
         navigate('/dashboard');
       }, 1500);
@@ -39,6 +37,7 @@ export const Login = ({ authViewModel }) => {
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white border-2 border-black p-8 md:p-10">
+
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-black mb-2">
@@ -51,7 +50,7 @@ export const Login = ({ authViewModel }) => {
 
           {/* Success Message */}
           {showSuccess && (
-            <div className="mb-6 p-4 bg-white border-2 border-black rounded-none">
+            <div className="mb-6 p-4 bg-white border-2 border-black">
               <p className="text-black text-sm font-medium">
                 ✓ Login successful! Redirecting...
               </p>
@@ -60,7 +59,7 @@ export const Login = ({ authViewModel }) => {
 
           {/* Error Message */}
           {authViewModel.error && !showSuccess && (
-            <div className="mb-6 p-4 bg-white border-2 border-black rounded-none">
+            <div className="mb-6 p-4 bg-white border-2 border-black">
               <p className="text-black text-sm font-medium">
                 {authViewModel.error}
               </p>
@@ -101,10 +100,20 @@ export const Login = ({ authViewModel }) => {
                   disabled={authViewModel.isLoading}
                 />
 
+                {/* Forgot password link */}
+                <div className="text-right mt-2">
+                  <Link
+                    to="/resetpassword"
+                    className="text-black text-sm font-semibold underline hover:text-gray-700"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+
                 <button
                   type="submit"
                   disabled={authViewModel.isLoading || showSuccess}
-                  className="w-full bg-black hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-none transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed mt-6"
+                  className="w-full bg-black hover:bg-gray-900 text-white font-semibold py-2 px-4 mt-6 disabled:bg-gray-500 disabled:cursor-not-allowed"
                 >
                   Sign In
                 </button>
@@ -124,6 +133,7 @@ export const Login = ({ authViewModel }) => {
               </Link>
             </p>
           </div>
+
         </div>
       </div>
     </div>
