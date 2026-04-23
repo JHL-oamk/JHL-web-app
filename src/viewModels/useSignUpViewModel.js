@@ -14,6 +14,7 @@ export const useSignUpViewModel = () => {
     username: '',
     password: '',
     confirmPassword: '',
+    organisation: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -151,6 +152,7 @@ export const useSignUpViewModel = () => {
       username: '',
       password: '',
       confirmPassword: '',
+      organisation: '',
     });
     setErrors({});
     setTouched({});
