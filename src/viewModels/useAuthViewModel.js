@@ -36,12 +36,12 @@ export const useAuthViewModel = () => {
     }
   }, []);
 
-  const register = useCallback(async (email, username, password) => {
+  const register = useCallback(async (email, username, password, organisation) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await registerApi(email, username, password);
+      const response = await registerApi(email, username, password, organisation);
 
       if (response.success) {
         setUser(response.user);

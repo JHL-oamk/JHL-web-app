@@ -1,5 +1,6 @@
 import { auth } from "../config/firebase";
 import { User, AuthResponse } from "./User";
+import { createUser, getUser } from "../services/userService"
 
 import {
   signInWithEmailAndPassword,
@@ -12,14 +13,22 @@ import {
 /**
  * Login API
  */
+// Added Auth login + Firestore user profile fetch
 export const loginApi = async (email, password) => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const firebaseUser = userCredential.user;
 
+    //FIRESTORE FETCH
+    const firestoreUser = await getUser(firebaseUser.uid);
+
+    if (!firestoreUser) {
+      console.warn("Firestore user missing for uid:", firebaseUser.uid);
+    }
+
     const user = new User(
       firebaseUser.email,
-      firebaseUser.displayName || "User"
+      firestoreUser?.username || firebaseUser.displayName || "User"
     );
 
     const token = await firebaseUser.getIdToken();
@@ -35,13 +44,24 @@ export const loginApi = async (email, password) => {
 /**
  * Register API
  */
-export const registerApi = async (email, username, password) => {
+// Added firestore to store registered account details
+export const registerApi = async (email, username, password, organisation) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    console.log("REGISTER API organisation:", organisation);
     const firebaseUser = userCredential.user;
 
     await updateProfile(firebaseUser, {
       displayName: username
+    });
+
+    //FIRESTORE
+    await createUser(firebaseUser.uid, {
+      email: firebaseUser.email,
+      username: username,
+      organisation: organisation?.trim() ? organisation.trim() : null,
+      role: "user",
+      createdAt: new Date(),
     });
 
     const user = new User(email, username);
