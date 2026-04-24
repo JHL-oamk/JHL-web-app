@@ -1,13 +1,15 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import {
   initialChats,
   initialFolders,
   initialMessages,
   lawsList
 } from "../models/ChatbotModel";
-import { useNavigate } from "react-router-dom";
 
 import { logoutApi } from "../models/authApi";
+import { askGemini } from "../models/geminiApi";
 
 export const useChatbotViewModel = () => {
   const navigate = useNavigate();
@@ -34,11 +36,10 @@ export const useChatbotViewModel = () => {
   // ---------------- AUTH ----------------
   const handleLogout = async () => {
     try {
-      await logoutApi(); // Firebase logout
+      await logoutApi();
     } catch (err) {
       console.error("Logout failed:", err);
     }
-
     navigate("/login");
   };
 
@@ -59,21 +60,35 @@ export const useChatbotViewModel = () => {
     if (!input.trim()) return;
 
     const userMessage = { role: "user", content: input };
-
     const updatedMessages = [...messages, userMessage];
+
     setMessages(updatedMessages);
     setInput("");
 
-    const reply = selectedLaws.length
-      ? `Answer based on: ${selectedLaws.join(", ")}`
-      : "Please select a law source.";
-
+    // loading state
     setMessages([
       ...updatedMessages,
-      { role: "assistant", content: reply }
+      { role: "assistant", content: "Thinking..." }
     ]);
+
+    try {
+      const aiReply = await askGemini(input, selectedLaws);
+
+      setMessages([
+        ...updatedMessages,
+        { role: "assistant", content: aiReply }
+      ]);
+    } catch (error) {
+      console.error(error);
+
+      setMessages([
+        ...updatedMessages,
+        { role: "assistant", content: "AI request failed." }
+      ]);
+    }
   };
 
+  // ---------------- LAW TOGGLE ----------------
   const toggleLaw = (law) => {
     setSelectedLaws(prev =>
       prev.includes(law)
@@ -82,6 +97,7 @@ export const useChatbotViewModel = () => {
     );
   };
 
+  // ---------------- FOLDER ----------------
   const addChatToFolder = (chatId) => {
     const folderName = prompt("Folder name?");
     const folder = folders.find(f => f.name === folderName);
@@ -113,11 +129,10 @@ export const useChatbotViewModel = () => {
     const chat = chats.find(c => c.id === chatId);
     if (!chat) return;
 
-    const shareLink = `${window.location.origin}/chat/${chatId}`;
+    const link = `${window.location.origin}/chat/${chatId}`;
 
-    navigator.clipboard.writeText(shareLink);
-
-    alert("链接已复制：\n" + shareLink);
+    navigator.clipboard.writeText(link);
+    alert("Link copied:\n" + link);
   };
 
   // ---------------- RETURN ----------------
