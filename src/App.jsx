@@ -9,6 +9,7 @@ import { Login } from './views/pages/Login';
 import { SignUp } from './views/pages/SignUp';
 import { Dashboard } from './views/pages/Dashboard';
 import { ResetPassword } from './views/pages/ResetPassword';
+import { Chatbot } from "./views/pages/Chatbot";
 
 function App() {
   const authViewModel = useAuthViewModel();
@@ -38,6 +39,7 @@ function App() {
             )
           }
         />
+        <Route path="/chatbot" element={<Chatbot />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
