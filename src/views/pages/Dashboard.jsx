@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router-dom';
+import { mockQueryFlow } from "../../services/mock/mockQueryFlow";
+import { auth } from "../../config/firebase";
 
 export const Dashboard = ({ authViewModel }) => {
   const navigate = useNavigate();
@@ -11,6 +13,37 @@ export const Dashboard = ({ authViewModel }) => {
   const goToChatbot = () => {
     navigate('/chatbot'); // make sure this route exists
   };
+//Mocked test (testbutton) to see queries and results in firestore can be deleted later, Button for it is down below
+//
+const testFlow = async () => {
+  console.log("🟡 TEST FLOW START");
+
+  const uid = authViewModel.user?.uid || auth.currentUser?.uid;
+
+  console.log("🧾 UID CHECK:", {
+    fromViewModel: authViewModel.user?.uid,
+    fromAuth: auth.currentUser?.uid,
+    finalUid: uid
+  });
+
+  if (!uid) {
+    console.error("❌ No UID available - user not authenticated yet");
+    return;
+  }
+
+  try {
+    console.log("🚀 Calling mockQueryFlow...");
+
+    const result = await mockQueryFlow(uid, "Hello test question");
+
+    console.log("✅ MOCK FLOW DONE");
+    console.log("📦 RESULT ID:", result);
+
+  } catch (error) {
+    console.error("🔥 ERROR IN MOCK FLOW:", error);
+  }
+};
+//
 
   return (
     <div className="min-h-screen bg-white">
@@ -89,8 +122,14 @@ export const Dashboard = ({ authViewModel }) => {
                   </span>
                 </div>
               </div>
-            </div>
 
+              {/* DataFlow test button, can be deleted after replacing mock implementation */}
+              <button
+                onClick={testFlow}
+                className="bg-black text-white px-4 py-2">
+                  Test Firestore Flow</button>
+
+            </div>
             {/* Action Buttons */}
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
 

@@ -23,7 +23,8 @@ export const SignUp = ({ authViewModel }) => {
     const result = await authViewModel.register(
       signUpForm.formData.email,
       signUpForm.formData.username,
-      signUpForm.formData.password
+      signUpForm.formData.password,
+      signUpForm.formData.organisation
     );
 
     if (result.success) {
@@ -129,6 +130,19 @@ export const SignUp = ({ authViewModel }) => {
                   required
                   disabled={authViewModel.isLoading}
                 />
+
+                <FormInput
+                  label="Organisation"
+                  name="organisation"
+                  type="text"
+                  value={signUpForm.formData.organisation}
+                  onChange={signUpForm.handleInputChange}
+                  onBlur={signUpForm.handleBlur}
+                  error={signUpForm.errors.organisation}
+                  touched={signUpForm.touched.organisation}
+                  placeholder="Your organisation (optional)"
+                  disabled={authViewModel.isLoading}
+                  />
 
                 <button
                   type="submit"
