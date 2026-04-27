@@ -9,12 +9,14 @@ export const initialFolders = [
 ];
 
 export const lawsList = [
-  "Finnish work law",
-  "Contract law",
-  "Employment law",
-  "Criminal law",
-  "Tax law",
-  "Civil law"
+  {
+    name: "Act on the Publicity of Government Activities",
+    link: "https://www.finlex.fi/fi/lainsaadanto/1999/621"
+  },
+  {
+    name: "Finnish Employment Contracts Act",
+    link: "https://www.finlex.fi/en/legislation/2001/55"
+  }
 ];
 
 export const initialMessages = [
