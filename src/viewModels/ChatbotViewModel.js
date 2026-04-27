@@ -56,6 +56,7 @@ export const useChatbotViewModel = () => {
     setMessages(initialMessages);
   };
 
+  // ---------------- SEND MESSAGE ----------------
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -65,11 +66,13 @@ export const useChatbotViewModel = () => {
     setMessages(updatedMessages);
     setInput("");
 
-    // loading state
-    setMessages([
+    // show loading state
+    const loadingMessages = [
       ...updatedMessages,
       { role: "assistant", content: "Thinking..." }
-    ]);
+    ];
+
+    setMessages(loadingMessages);
 
     try {
       const aiReply = await askGemini(input, selectedLaws);
@@ -89,12 +92,15 @@ export const useChatbotViewModel = () => {
   };
 
   // ---------------- LAW TOGGLE ----------------
-  const toggleLaw = (law) => {
-    setSelectedLaws(prev =>
-      prev.includes(law)
-        ? prev.filter(l => l !== law)
-        : [...prev, law]
-    );
+  const toggleLaw = (lawLink) => {
+    setSelectedLaws((prev) => {
+      const updated = prev.includes(lawLink)
+        ? prev.filter((l) => l !== lawLink)
+        : [...prev, lawLink];
+
+      console.log("Updated selected laws:", updated);
+      return updated;
+    });
   };
 
   // ---------------- FOLDER ----------------

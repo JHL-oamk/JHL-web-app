@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
-// ⚠️ 按“可能性排序”，不是保证可用
+// ⚠️ DO NOT CHANGE (as requested)
 const MODELS = [
   "gemini-2.5-flash",
   "gemini-2.5-flash-lite",
@@ -17,9 +17,26 @@ async function callModel(modelName, prompt) {
   return result.response.text();
 }
 
-export async function askGemini(question) {
+/**
+ * question: string
+ * selectedLaws: string[] (law links)
+ */
+export async function askGemini(question, selectedLaws = []) {
+  const lawContext =
+    selectedLaws.length > 0
+      ? `\nYou must ONLY use the following laws:\n${selectedLaws.join("\n")}\n`
+      : "";
+
   const prompt = `
-You are a legal assistant.
+You are a professional Finnish legal assistant.
+
+You must base your answer ONLY on the provided law texts.
+
+If the law text does not contain the answer, say "Not found in provided law."
+
+-------------------
+${lawContext}
+-------------------
 
 User question:
 ${question}
