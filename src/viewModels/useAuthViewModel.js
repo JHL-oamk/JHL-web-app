@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { loginApi, registerApi, logoutApi } from '../models/authApi';
+import { loginApi, registerApi, logoutApi, loginWithGoogleApi } from '../models/authApi';
 
 export const useAuthViewModel = () => {
   const [user, setUser] = useState(null);
@@ -84,6 +84,31 @@ export const useAuthViewModel = () => {
     }
   }, []);
 
+  //Google sign in
+  const loginWithGoogle = useCallback(async () => {
+  setIsLoading(true);
+  setError(null);
+
+  try {
+    const response = await loginWithGoogleApi();
+
+    if (response.success) {
+      setUser(response.user);
+      setIsAuthenticated(true);
+      return { success: true, message: response.message };
+    } else {
+      setError(response.message);
+      return { success: false, message: response.message };
+    }
+  } catch (err) {
+    const errorMessage = "Google login failed";
+    setError(errorMessage);
+    return { success: false, message: errorMessage };
+  } finally {
+    setIsLoading(false);
+  }
+}, []);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -97,5 +122,6 @@ export const useAuthViewModel = () => {
     register,
     logout,
     clearError,
+    loginWithGoogle,
   };
 };
