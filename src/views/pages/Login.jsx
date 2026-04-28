@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useLoginViewModel } from '../../viewModels/useLoginViewModel';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { GoogleButton } from "../components/GoogleButton";
 import { Card } from '../components/Card';
 import { Title } from '../components/Title';
 import { TextInput } from '../components/TextInput';
@@ -18,6 +19,7 @@ export const Login = ({ authViewModel }) => {
   const navigate = useNavigate();
   const loginForm = useLoginViewModel();
   const [showSuccess, setShowSuccess] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,30 +41,42 @@ export const Login = ({ authViewModel }) => {
     }
   };
 
+//Google Sign in handler
+const handleGoogleLogin = async () => {
+  const result = await authViewModel.loginWithGoogle();
+
+  if (result.success) {
+    setShowSuccess(true);
+
+    setTimeout(() => {
+      navigate("/dashboard");
+    }, 1500);
+  }
+};
+
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-24 pb-8 p-4">
-        <div className="w-full max-w-[400px]">
-          <Title text="LOG IN" />
-          <Card>
-            {/* Success Message */}
-          {showSuccess && (
-            <div className="mb-6 p-4 bg-white border-2 border-black">
-              <p className="text-black text-sm font-medium">
-                ✓ Login successful! Redirecting...
-              </p>
-            </div>
-          )}
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-0 pb-8">
+        <Title text="LOG IN" />
+        <Card>
+          {/* Success Message */}
+        {showSuccess && (
+          <div className="mb-6 p-4 bg-white border-2 border-black">
+            <p className="text-black text-sm font-medium">
+              ✓ Login successful! Redirecting...
+            </p>
+          </div>
+        )}
 
-          {/* Error Message */}
-          {authViewModel.error && !showSuccess && (
-            <div className="mb-6 p-4 bg-white border-2 border-black">
-              <p className="text-black text-sm font-medium">
-                {authViewModel.error}
-              </p>
-            </div>
-          )}
+        {/* Error Message */}
+        {authViewModel.error && !showSuccess && (
+          <div className="mb-6 p-4 bg-white border-2 border-black">
+            <p className="text-black text-sm font-medium">
+              {authViewModel.error}
+            </p>
+          </div>
+        )}
 
           {/* Form */}
           <form onSubmit={handleSubmit}>
@@ -102,7 +116,7 @@ export const Login = ({ authViewModel }) => {
                 <div className="text-center mt-3 mb-6">
                   <Link
                     to="/resetpassword"
-                    className="text-[11px] font-bold hover:underline"
+                    className="text-[12px] font-medium hover:underline"
                     style={{ color: colors.darkGrey }}
                   >
                     Forgot your password?
@@ -113,10 +127,15 @@ export const Login = ({ authViewModel }) => {
                   <input
                     type="checkbox"
                     id="remember"
-                    className="w-3.5 h-3.5 rounded-sm appearance-none flex items-center justify-center relative cursor-pointer checked:bg-highlight"
-                    style={{ backgroundColor: colors.highlight }}
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded-sm appearance-none flex items-center justify-center relative cursor-pointer border-2 transition-all"
+                    style={{
+                      borderColor: colors.highlight,
+                      backgroundColor: rememberMe ? colors.highlight : 'transparent'
+                    }}
                   />
-                  <label htmlFor="remember" className="text-[12px] font-bold cursor-pointer" style={{ color: colors.darkGrey }}>
+                  <label htmlFor="remember" className="text-[12px] font-medium cursor-pointer" style={{ color: colors.darkGrey }}>
                     Remember me
                   </label>
                 </div>
@@ -128,13 +147,26 @@ export const Login = ({ authViewModel }) => {
             )}
           </form>
 
+          {/* Divider */}
+          <div className="flex items-center my-6">
+           <div className="flex-1 border-t border-gray-300"></div>
+           <span className="px-3 text-sm text-gray-500">or</span>    
+          <div className="flex-1 border-t border-gray-300"></div>
+         </div>
+
+        {/* Google Login */}
+        <GoogleButton
+          onClick={handleGoogleLogin}
+          disabled={authViewModel.isLoading}
+        />
+
           {/* Sign Up Link */}
-          <div className="mt-8 text-center text-[12px] font-bold text-darkGrey">
+          <div className="mt-8 text-center text-[12px] font-medium" style={{ color: colors.darkGrey }}>
             <p>
               Don't have an account?{' '}
               <Link
                 to="/signup"
-                className="hover:underline"
+                className="font-bold hover:underline"
                 style={{ color: colors.link }}
               >
                 Sign up!
@@ -142,14 +174,8 @@ export const Login = ({ authViewModel }) => {
             </p>
           </div>
 
-          <div className="my-6 h-[1px] bg-gray-200"></div>
-
-          <Button variant="red" className="mt-0">
-            Log In With Google
-          </Button>
         </Card>
       </div>
-    </div>
     </>
   );
 };

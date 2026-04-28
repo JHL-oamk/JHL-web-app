@@ -45,39 +45,38 @@ export const SignUp = ({ authViewModel }) => {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-24 pb-8 px-4">
-        <div className="w-full max-w-[400px]">
-          <Title text="SIGN UP" />
-          <Card>
-            {/* Success Message */}
-          {showSuccess && (
-            <div className="mb-6 p-4 bg-white border-2 border-black rounded-none">
-              <p className="text-black text-sm font-medium">
-                ✓ Account created successfully! Redirecting...
-              </p>
-            </div>
-          )}
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-2 pb-8">
+        <Title text="SIGN UP" />
+        <Card>
+          {/* Success Message */}
+        {showSuccess && (
+          <div className="mb-6 p-4 bg-white border-2 border-black rounded-none">
+            <p className="text-black text-sm font-medium">
+              ✓ Account created successfully! Redirecting...
+            </p>
+          </div>
+        )}
 
-          {/* Error Message */}
-          {authViewModel.error && !showSuccess && (
-            <div className="mb-6 p-4 bg-white border-2 border-black rounded-none">
-              <p className="text-black text-sm font-medium">
-                {authViewModel.error}
-              </p>
-            </div>
-          )}
+        {/* Error Message */}
+        {authViewModel.error && !showSuccess && (
+          <div className="mb-6 p-4 bg-white border-2 border-black rounded-none">
+            <p className="text-black text-sm font-medium">
+              {authViewModel.error}
+            </p>
+          </div>
+        )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit}>
-            {authViewModel.isLoading ? (
-              <LoadingSpinner message="Creating account..." />
-            ) : (
-              <>
-                <TextInput
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={signUpForm.formData.email}
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          {authViewModel.isLoading ? (
+            <LoadingSpinner message="Creating account..." />
+          ) : (
+            <>
+              <TextInput
+                label="Email"
+                name="email"
+                type="email"
+                    value={signUpForm.formData.email}
                   onChange={signUpForm.handleInputChange}
                   onBlur={signUpForm.handleBlur}
                   error={signUpForm.errors.email}
@@ -150,12 +149,12 @@ export const SignUp = ({ authViewModel }) => {
           </form>
 
           {/* Login Link */}
-          <div className="mt-8 text-center text-[11px] font-bold" style={{ color: colors.darkGrey }}>
+          <div className="mt-8 text-center text-[12px]" style={{ color: colors.darkGrey }}>
             <p>
               Already have an account?{' '}
               <Link
                 to="/login"
-                className="hover:underline"
+                className="font-bold hover:underline"
                 style={{ color: colors.link }}
               >
                 Log In!
@@ -164,7 +163,6 @@ export const SignUp = ({ authViewModel }) => {
           </div>
         </Card>
       </div>
-    </div>
     </>
   );
 };

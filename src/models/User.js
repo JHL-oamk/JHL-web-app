@@ -3,15 +3,16 @@
  */
 
 export class User {
-  constructor(email, username = null, password = null) {
+  constructor(uid, email, username = null) {
+    this.uid = uid;
     this.email = email;
     this.username = username;
-    this.password = password;
     this.createdAt = new Date();
   }
 
   toJSON() {
     return {
+      uid: this.uid,
       email: this.email,
       username: this.username,
       createdAt: this.createdAt,

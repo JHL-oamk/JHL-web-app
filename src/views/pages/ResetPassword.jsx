@@ -46,38 +46,37 @@ export const ResetPassword = () => {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-24 pb-8 px-4">
-        <div className="w-full max-w-[400px]">
-          <Title text="RESET PASSWORD" />
-          <Card>
-            {/* Success Message */}
-          {showSuccess && (
-            <div className="mb-6 p-4 bg-white border-2 border-black">
-              <p className="text-black text-sm font-medium">
-                ✓ We’ve sent a password reset link if the email exists.
-              </p>
-            </div>
-          )}
-
-          {/* Error Message */}
-          {vm.errorMessage && !showSuccess && (
-            <div className="mb-6 p-4 bg-white border-2 border-black">
-              <p className="text-black text-sm font-medium">
-                {vm.errorMessage}
-              </p>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="mt-8">
-            <p className="text-[13px] leading-tight font-bold mb-6" style={{ color: '#000000' }}>
-              *Reset Password via Email.We will send a link to the email you used when you signed up your account.Type in your email below to receive the link.
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-0 pb-8">
+        <Title text="RESET PASSWORD" />
+        <Card>
+          {/* Success Message */}
+        {showSuccess && (
+          <div className="mb-6 p-4 bg-white border-2 border-black">
+            <p className="text-black text-sm font-medium">
+              ✓ We've sent a password reset link if the email exists.
             </p>
-            {vm.loading ? (
-              <LoadingSpinner message="Sending reset link..." />
-            ) : (
-              <>
-                <TextInput
+          </div>
+        )}
+
+        {/* Error Message */}
+        {vm.errorMessage && !showSuccess && (
+          <div className="mb-6 p-4 bg-white border-2 border-black">
+            <p className="text-black text-sm font-medium">
+              {vm.errorMessage}
+            </p>
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="mt-8">
+          <p className="text-[13px] leading-tight font-bold mb-6" style={{ color: '#000000' }}>
+            *Reset Password via Email.We will send a link to the email you used when you signed up your account.Type in your email below to receive the link.
+          </p>
+          {vm.loading ? (
+            <LoadingSpinner message="Sending reset link..." />
+          ) : (
+            <>
+              <TextInput
                   label="Email"
                   name="email"
                   type="email"
@@ -94,7 +93,7 @@ export const ResetPassword = () => {
 
                 {/* Log In text in middle */}
                 <div className="text-center my-6">
-                  <Link to="/login" className="text-[11px] font-bold hover:underline" style={{ color: colors.link }}>
+                  <Link to="/login" className="text-[12px] font-bold hover:underline" style={{ color: colors.link }}>
                     Log In?
                   </Link>
                 </div>
@@ -118,7 +117,6 @@ export const ResetPassword = () => {
 
         </Card>
       </div>
-    </div>
     </>
   );
 };
