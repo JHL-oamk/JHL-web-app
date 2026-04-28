@@ -51,8 +51,8 @@ export const ResetPassword = () => {
         <Card>
           {/* Success Message */}
         {showSuccess && (
-          <div className="mb-6 p-4 bg-white border-2 border-black">
-            <p className="text-black text-sm font-medium">
+          <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
+            <p className="text-black text-[12px] font-medium">
               ✓ We've sent a password reset link if the email exists.
             </p>
           </div>
@@ -60,8 +60,8 @@ export const ResetPassword = () => {
 
         {/* Error Message */}
         {vm.errorMessage && !showSuccess && (
-          <div className="mb-6 p-4 bg-white border-2 border-black">
-            <p className="text-black text-sm font-medium">
+          <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
+            <p className="text-black text-[12px] font-medium">
               {vm.errorMessage}
             </p>
           </div>
@@ -69,8 +69,8 @@ export const ResetPassword = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="mt-8">
-          <p className="text-[13px] leading-tight font-bold mb-6" style={{ color: '#000000' }}>
-            *Reset Password via Email.We will send a link to the email you used when you signed up your account.Type in your email below to receive the link.
+          <p className="text-[12px] leading-relaxed font-medium mb-6" style={{ color: colors.darkGrey }}>
+            *Reset Password via Email. We will send a link to the email you used when you signed up your account. Type in your email below to receive the link.
           </p>
           {vm.loading ? (
             <LoadingSpinner message="Sending reset link..." />

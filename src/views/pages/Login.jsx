@@ -62,8 +62,8 @@ const handleGoogleLogin = async () => {
         <Card>
           {/* Success Message */}
         {showSuccess && (
-          <div className="mb-6 p-4 bg-white border-2 border-black">
-            <p className="text-black text-sm font-medium">
+          <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
+            <p className="text-black text-[12px] font-medium">
               ✓ Login successful! Redirecting...
             </p>
           </div>
@@ -71,8 +71,8 @@ const handleGoogleLogin = async () => {
 
         {/* Error Message */}
         {authViewModel.error && !showSuccess && (
-          <div className="mb-6 p-4 bg-white border-2 border-black">
-            <p className="text-black text-sm font-medium">
+          <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
+            <p className="text-black text-[12px] font-medium">
               {authViewModel.error}
             </p>
           </div>

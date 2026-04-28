@@ -50,8 +50,8 @@ export const SignUp = ({ authViewModel }) => {
         <Card>
           {/* Success Message */}
         {showSuccess && (
-          <div className="mb-6 p-4 bg-white border-2 border-black rounded-none">
-            <p className="text-black text-sm font-medium">
+          <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
+            <p className="text-black text-[12px] font-medium">
               ✓ Account created successfully! Redirecting...
             </p>
           </div>
@@ -59,8 +59,8 @@ export const SignUp = ({ authViewModel }) => {
 
         {/* Error Message */}
         {authViewModel.error && !showSuccess && (
-          <div className="mb-6 p-4 bg-white border-2 border-black rounded-none">
-            <p className="text-black text-sm font-medium">
+          <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
+            <p className="text-black text-[12px] font-medium">
               {authViewModel.error}
             </p>
           </div>
