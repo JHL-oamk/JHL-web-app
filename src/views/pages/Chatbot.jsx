@@ -154,20 +154,27 @@ export const Chatbot = ({ authViewModel }) => {
           {vm.showLawSource && (
             <>
               <div className="space-y-2 text-sm mt-2">
-                {vm.laws.map(law => (
-                  <label key={law} className="flex items-start gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={vm.selectedLaws.includes(law)}
-                      onChange={() => vm.toggleLaw(law)}
-                      className="mt-1"
-                    />
-                    <div>
-                      <p>{law}</p>
-                      <p className="text-xs text-gray-500">www.link-example.com</p>
-                    </div>
-                  </label>
-                ))}
+               {vm.laws.map((law) => (
+                <label key={law.link} className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={vm.selectedLaws.includes(law.link)}
+                    onChange={() => vm.toggleLaw(law.link)}
+                    className="mt-1"
+                  />
+                  <div>
+                    <p>{law.name}</p>
+                    <a
+                      href={law.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-500 underline"
+                    >
+                      {law.link}
+                    </a>
+                  </div>
+                </label>
+              ))}
               </div>
             </>
           )}
