@@ -7,6 +7,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useLoginViewModel } from '../../viewModels/useLoginViewModel';
 import { FormInput } from '../components/FormInput';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { GoogleButton } from "../components/GoogleButton";
 
 export const Login = ({ authViewModel }) => {
   const navigate = useNavigate();
@@ -32,6 +33,19 @@ export const Login = ({ authViewModel }) => {
       }, 1500);
     }
   };
+
+//Google Sign in handler
+const handleGoogleLogin = async () => {
+  const result = await authViewModel.loginWithGoogle();
+
+  if (result.success) {
+    setShowSuccess(true);
+
+    setTimeout(() => {
+      navigate("/dashboard");
+    }, 1500);
+  }
+};
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
@@ -120,6 +134,19 @@ export const Login = ({ authViewModel }) => {
               </>
             )}
           </form>
+
+          {/* Divider */}
+          <div className="flex items-center my-6">
+           <div className="flex-1 border-t border-gray-300"></div>
+           <span className="px-3 text-sm text-gray-500">or</span>    
+          <div className="flex-1 border-t border-gray-300"></div>
+         </div>
+
+        {/* Google Login */}
+        <GoogleButton
+         onClick={handleGoogleLogin}
+         disabled={authViewModel.isLoading}
+        />
 
           {/* Sign Up Link */}
           <div className="mt-6 text-center">

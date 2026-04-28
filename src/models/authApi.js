@@ -7,7 +7,9 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   updateProfile,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
 
 /**
@@ -27,6 +29,7 @@ export const loginApi = async (email, password) => {
     }
 
     const user = new User(
+      firebaseUser.uid,
       firebaseUser.email,
       firestoreUser?.username || firebaseUser.displayName || "User"
     );
@@ -63,8 +66,12 @@ export const registerApi = async (email, username, password, organisation) => {
       role: "user",
       createdAt: new Date(),
     });
-
-    const user = new User(email, username);
+    
+    const user = new User(
+     firebaseUser.uid,
+     firebaseUser.email,
+     username
+    );
 
     const token = await firebaseUser.getIdToken();
     localStorage.setItem("authToken", token);
@@ -112,5 +119,44 @@ export const resetPasswordApi = async (email) => {
       null,
       null
     );
+  }
+};
+
+/**
+ * Google Sign in firebase
+ */
+export const loginWithGoogleApi = async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+
+    const result = await signInWithPopup(auth, provider);
+    const firebaseUser = result.user;
+
+    const firestoreUser = await getUser(firebaseUser.uid);
+
+    //Create new user to firebase if doesn't exist
+    if (!firestoreUser) {
+      await createUser(firebaseUser.uid, {
+        email: firebaseUser.email,
+        username: firebaseUser.displayName || "User",
+        organisation: null,
+        role: "user",
+        createdAt: new Date(),
+      });
+    }
+
+    const user = new User(
+      firebaseUser.uid,
+      firebaseUser.email,
+      firestoreUser?.username || firebaseUser.displayName || "User"
+    );
+
+    const token = await firebaseUser.getIdToken();
+    localStorage.setItem("authToken", token);
+
+    return new AuthResponse(true, "Google login successful", user, token);
+
+  } catch (error) {
+    return new AuthResponse(false, error.message, null, null);
   }
 };
