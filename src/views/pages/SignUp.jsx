@@ -5,8 +5,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSignUpViewModel } from '../../viewModels/useSignUpViewModel';
-import { FormInput } from '../components/FormInput';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { Card } from '../components/Card';
+import { Title } from '../components/Title';
+import { TextInput } from '../components/TextInput';
+import { Button } from '../components/Button';
+import { Navbar } from '../components/Navbar';
+import colors from '../../config/colors';
 
 export const SignUp = ({ authViewModel }) => {
   const navigate = useNavigate();
@@ -38,20 +43,13 @@ export const SignUp = ({ authViewModel }) => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white border-2 border-black p-8 md:p-10">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-black mb-2">
-              Create Account
-            </h1>
-            <p className="text-gray-700">
-              Join us and get started today
-            </p>
-          </div>
-
-          {/* Success Message */}
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-24 pb-8 px-4">
+        <div className="w-full max-w-[400px]">
+          <Title text="SIGN UP" />
+          <Card>
+            {/* Success Message */}
           {showSuccess && (
             <div className="mb-6 p-4 bg-white border-2 border-black rounded-none">
               <p className="text-black text-sm font-medium">
@@ -75,8 +73,8 @@ export const SignUp = ({ authViewModel }) => {
               <LoadingSpinner message="Creating account..." />
             ) : (
               <>
-                <FormInput
-                  label="Email Address"
+                <TextInput
+                  label="Email"
                   name="email"
                   type="email"
                   value={signUpForm.formData.email}
@@ -89,8 +87,8 @@ export const SignUp = ({ authViewModel }) => {
                   disabled={authViewModel.isLoading}
                 />
 
-                <FormInput
-                  label="Username"
+                <TextInput
+                  label="User Name"
                   name="username"
                   type="text"
                   value={signUpForm.formData.username}
@@ -103,7 +101,7 @@ export const SignUp = ({ authViewModel }) => {
                   disabled={authViewModel.isLoading}
                 />
 
-                <FormInput
+                <TextInput
                   label="Password"
                   name="password"
                   type="password"
@@ -117,7 +115,7 @@ export const SignUp = ({ authViewModel }) => {
                   disabled={authViewModel.isLoading}
                 />
 
-                <FormInput
+                <TextInput
                   label="Confirm Password"
                   name="confirmPassword"
                   type="password"
@@ -131,8 +129,8 @@ export const SignUp = ({ authViewModel }) => {
                   disabled={authViewModel.isLoading}
                 />
 
-                <FormInput
-                  label="Organisation"
+                <TextInput
+                  label="Organisation (Optional)"
                   name="organisation"
                   type="text"
                   value={signUpForm.formData.organisation}
@@ -142,44 +140,31 @@ export const SignUp = ({ authViewModel }) => {
                   touched={signUpForm.touched.organisation}
                   placeholder="Your organisation (optional)"
                   disabled={authViewModel.isLoading}
-                  />
+                />
 
-                <button
-                  type="submit"
-                  disabled={authViewModel.isLoading || showSuccess}
-                  className="w-full bg-black hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-none transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed mt-6"
-                >
-                  Create Account
-                </button>
+                <Button type="submit" className="mt-6" disabled={authViewModel.isLoading || showSuccess}>
+                  Sign Up
+                </Button>
               </>
             )}
           </form>
 
           {/* Login Link */}
-          <div className="mt-6 text-center">
-            <p className="text-black">
+          <div className="mt-8 text-center text-[11px] font-bold" style={{ color: colors.darkGrey }}>
+            <p>
               Already have an account?{' '}
               <Link
                 to="/login"
-                className="text-black hover:text-gray-700 font-semibold underline"
+                className="hover:underline"
+                style={{ color: colors.link }}
               >
-                Sign in
+                Log In!
               </Link>
             </p>
           </div>
-
-          {/* Requirements Info */}
-          <div className="mt-6 p-4 bg-white rounded-none border-2 border-black">
-            <p className="text-xs text-black font-semibold mb-2">
-              Password Requirements:
-            </p>
-            <ul className="text-xs text-black space-y-1">
-              <li>• At least 8 characters long</li>
-              <li>• Username: 3+ characters (letters, numbers, underscores)</li>
-            </ul>
-          </div>
-        </div>
+        </Card>
       </div>
     </div>
+    </>
   );
 };

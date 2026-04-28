@@ -5,8 +5,14 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useLoginViewModel } from '../../viewModels/useLoginViewModel';
-import { FormInput } from '../components/FormInput';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { Card } from '../components/Card';
+import { Title } from '../components/Title';
+import { TextInput } from '../components/TextInput';
+import { Button } from '../components/Button';
+
+import { Navbar } from '../components/Navbar';
+import colors from '../../config/colors';
 
 export const Login = ({ authViewModel }) => {
   const navigate = useNavigate();
@@ -34,21 +40,13 @@ export const Login = ({ authViewModel }) => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white border-2 border-black p-8 md:p-10">
-
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-black mb-2">
-              Welcome Back
-            </h1>
-            <p className="text-gray-700">
-              Sign in to your account to continue
-            </p>
-          </div>
-
-          {/* Success Message */}
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-24 pb-8 p-4">
+        <div className="w-full max-w-[400px]">
+          <Title text="LOG IN" />
+          <Card>
+            {/* Success Message */}
           {showSuccess && (
             <div className="mb-6 p-4 bg-white border-2 border-black">
               <p className="text-black text-sm font-medium">
@@ -72,8 +70,8 @@ export const Login = ({ authViewModel }) => {
               <LoadingSpinner message="Logging in..." />
             ) : (
               <>
-                <FormInput
-                  label="Email Address"
+                <TextInput
+                  label="Email"
                   name="email"
                   type="email"
                   value={loginForm.formData.email}
@@ -86,7 +84,7 @@ export const Login = ({ authViewModel }) => {
                   disabled={authViewModel.isLoading}
                 />
 
-                <FormInput
+                <TextInput
                   label="Password"
                   name="password"
                   type="password"
@@ -101,41 +99,57 @@ export const Login = ({ authViewModel }) => {
                 />
 
                 {/* Forgot password link */}
-                <div className="text-right mt-2">
+                <div className="text-center mt-3 mb-6">
                   <Link
                     to="/resetpassword"
-                    className="text-black text-sm font-semibold underline hover:text-gray-700"
+                    className="text-[11px] font-bold hover:underline"
+                    style={{ color: colors.darkGrey }}
                   >
-                    Forgot password?
+                    Forgot your password?
                   </Link>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={authViewModel.isLoading || showSuccess}
-                  className="w-full bg-black hover:bg-gray-900 text-white font-semibold py-2 px-4 mt-6 disabled:bg-gray-500 disabled:cursor-not-allowed"
-                >
-                  Sign In
-                </button>
+                <div className="flex items-center justify-center gap-2 mb-6">
+                  <input
+                    type="checkbox"
+                    id="remember"
+                    className="w-3.5 h-3.5 rounded-sm appearance-none flex items-center justify-center relative cursor-pointer checked:bg-highlight"
+                    style={{ backgroundColor: colors.highlight }}
+                  />
+                  <label htmlFor="remember" className="text-[12px] font-bold cursor-pointer" style={{ color: colors.darkGrey }}>
+                    Remember me
+                  </label>
+                </div>
+
+                <Button type="submit" className="mt-6" disabled={authViewModel.isLoading || showSuccess}>
+                  Log In
+                </Button>
               </>
             )}
           </form>
 
           {/* Sign Up Link */}
-          <div className="mt-6 text-center">
-            <p className="text-black">
+          <div className="mt-8 text-center text-[12px] font-bold text-darkGrey">
+            <p>
               Don't have an account?{' '}
               <Link
                 to="/signup"
-                className="text-black hover:text-gray-700 font-semibold underline"
+                className="hover:underline"
+                style={{ color: colors.link }}
               >
-                Sign up
+                Sign up!
               </Link>
             </p>
           </div>
 
-        </div>
+          <div className="my-6 h-[1px] bg-gray-200"></div>
+
+          <Button variant="red" className="mt-0">
+            Log In With Google
+          </Button>
+        </Card>
       </div>
     </div>
+    </>
   );
 };
