@@ -7,9 +7,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuthViewModel } from './viewModels/useAuthViewModel';
 import { Login } from './views/pages/Login';
 import { SignUp } from './views/pages/SignUp';
-import { Dashboard } from './views/pages/Dashboard';
+import { Settings } from './views/pages/Settings';
 import { ResetPassword } from './views/pages/ResetPassword';
-import { Chatbot } from "./views/pages/Chatbot";
+import { Chatbot } from './views/pages/Chatbot';
+import { LawSources } from './views/pages/LawSources';
+import { Admin } from './views/pages/Admin';
 
 function App() {
   const authViewModel = useAuthViewModel();
@@ -25,22 +27,51 @@ function App() {
           path="/signup"
           element={<SignUp authViewModel={authViewModel} />}
         />
-         <Route
+        <Route
           path="/resetpassword"
           element={<ResetPassword authViewModel={authViewModel} />}
         />
         <Route
-          path="/dashboard"
+          path="/settings"
           element={
             authViewModel.isAuthenticated ? (
-              <Dashboard authViewModel={authViewModel} />
+              <Settings authViewModel={authViewModel} />
             ) : (
               <Navigate to="/login" replace />
             )
           }
         />
-        <Route path="/chatbot" element={<Chatbot />} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route
+          path="/law-sources"
+          element={
+            authViewModel.isAuthenticated ? (
+              <LawSources authViewModel={authViewModel} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            authViewModel.isAuthenticated ? (
+              <Admin authViewModel={authViewModel} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route path="/chatbot" element={<Chatbot authViewModel={authViewModel} />} />
+        <Route
+          path="/"
+          element={
+            authViewModel.isAuthenticated ? (
+              <Navigate to="/settings" replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>

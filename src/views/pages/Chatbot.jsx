@@ -1,11 +1,14 @@
 import { Bot, User } from "lucide-react";
+import { Navbar } from '../components/Navbar';
 import { useChatbotViewModel } from "../../viewModels/ChatbotViewModel";
 
 export const Chatbot = ({ authViewModel }) => {
   const vm = useChatbotViewModel(authViewModel);
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="min-h-screen bg-white pt-[50px]">
+      <Navbar authViewModel={authViewModel} />
+      <div className="flex h-[calc(100vh-50px)]">
 
       {/* ================= SIDEBAR ================= */}
       <div className="w-72 border-r-2 border-black flex flex-col bg-gray-50">
@@ -266,6 +269,7 @@ export const Chatbot = ({ authViewModel }) => {
           </button>
         </div>
 
+      </div>
       </div>
     </div>
   );

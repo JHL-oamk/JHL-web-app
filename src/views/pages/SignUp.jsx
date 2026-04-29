@@ -35,16 +35,16 @@ export const SignUp = ({ authViewModel }) => {
     if (result.success) {
       setShowSuccess(true);
       signUpForm.resetForm();
-      // Redirect to dashboard after 1.5 seconds
+      // Redirect to settings after 1.5 seconds
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/settings');
       }, 1500);
     }
   };
 
   return (
     <>
-      <Navbar />
+      <Navbar authViewModel={authViewModel} />
       <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-2 pb-8">
         <Title text="SIGN UP" />
         <Card>

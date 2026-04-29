@@ -13,7 +13,7 @@ import { Navbar } from '../components/Navbar';
 import colors from '../../config/colors';
 import { useResetPasswordViewModel } from '../../viewModels/useResetPasswordViewModel';
 
-export const ResetPassword = () => {
+export const ResetPassword = ({ authViewModel }) => {
   const vm = useResetPasswordViewModel();
 
   const [touched, setTouched] = useState({});
@@ -45,7 +45,7 @@ export const ResetPassword = () => {
 
   return (
     <>
-      <Navbar />
+      <Navbar authViewModel={authViewModel} />
       <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-0 pb-8">
         <Title text="RESET PASSWORD" />
         <Card>

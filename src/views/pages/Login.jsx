@@ -36,7 +36,7 @@ export const Login = ({ authViewModel }) => {
       loginForm.resetForm();
 
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/settings');
       }, 1500);
     }
   };
@@ -49,14 +49,14 @@ const handleGoogleLogin = async () => {
     setShowSuccess(true);
 
     setTimeout(() => {
-      navigate("/dashboard");
+      navigate("/settings");
     }, 1500);
   }
 };
 
   return (
     <>
-      <Navbar />
+      <Navbar authViewModel={authViewModel} />
       <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-0 pb-8">
         <Title text="LOG IN" />
         <Card>
