@@ -18,7 +18,7 @@ export const Navbar = ({ authViewModel }) => {
   ];
 
   return (
-    <nav className="w-full h-[50px] bg-white fixed top-0 left-0 z-50 relative">
+    <nav className="w-full h-[50px] bg-white fixed top-0 left-0 z-50">
       <div className="absolute left-0 top-0 h-[50px] w-[280px] flex items-center justify-center">
         <Link to="/" className="text-[30px] font-black tracking-wider uppercase" style={{ color: colors.secondary }}>
           LOGO
