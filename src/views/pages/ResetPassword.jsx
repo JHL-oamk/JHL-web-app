@@ -4,11 +4,16 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FormInput } from '../components/FormInput';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { Card } from '../components/Card';
+import { Title } from '../components/Title';
+import { TextInput } from '../components/TextInput';
+import { Button } from '../components/Button';
+import { Navbar } from '../components/Navbar';
+import colors from '../../config/colors';
 import { useResetPasswordViewModel } from '../../viewModels/useResetPasswordViewModel';
 
-export const ResetPassword = () => {
+export const ResetPassword = ({ authViewModel }) => {
   const vm = useResetPasswordViewModel();
 
   const [touched, setTouched] = useState({});
@@ -39,81 +44,70 @@ export const ResetPassword = () => {
   const isDisabled = vm.loading || !vm.canSubmit;
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white border-2 border-black p-8 md:p-10">
-
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-black mb-2">
-              Reset Password
-            </h1>
-            <p className="text-gray-700">
-              Enter your email to receive a reset link
+    <>
+      <Navbar authViewModel={authViewModel} />
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-0 pb-8">
+        <Title text="RESET PASSWORD" />
+        <Card>
+          {/* Success Message */}
+        {showSuccess && (
+          <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
+            <p className="text-black text-[12px] font-medium">
+              ✓ We've sent a password reset link if the email exists.
             </p>
           </div>
+        )}
 
-          {/* Success Message */}
-          {showSuccess && (
-            <div className="mb-6 p-4 bg-white border-2 border-black">
-              <p className="text-black text-sm font-medium">
-                ✓ We’ve sent a password reset link if the email exists.
-              </p>
-            </div>
-          )}
+        {/* Error Message */}
+        {vm.errorMessage && !showSuccess && (
+          <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
+            <p className="text-black text-[12px] font-medium">
+              {vm.errorMessage}
+            </p>
+          </div>
+        )}
 
-          {/* Error Message */}
-          {vm.errorMessage && !showSuccess && (
-            <div className="mb-6 p-4 bg-white border-2 border-black">
-              <p className="text-black text-sm font-medium">
-                {vm.errorMessage}
-              </p>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit}>
-            {vm.loading ? (
-              <LoadingSpinner message="Sending reset link..." />
-            ) : (
-              <>
-                <FormInput
-                  label="Email Address"
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="mt-8">
+          <p className="text-[12px] leading-relaxed font-medium mb-6" style={{ color: colors.darkGrey }}>
+            *Reset Password via Email. We will send a link to the email you used when you signed up your account. Type in your email below to receive the link.
+          </p>
+          {vm.loading ? (
+            <LoadingSpinner message="Sending reset link..." />
+          ) : (
+            <>
+              <TextInput
+                  label="Email"
                   name="email"
                   type="email"
                   value={vm.email}
                   onChange={handleInputChange}
                   onBlur={handleBlur}
-                  error={
-                    vm.errorMessage && touched.email
-                      ? vm.errorMessage
-                      : ''
-                  }
+                  error={vm.errorMessage && touched.email ? vm.errorMessage : ''}
                   touched={touched.email}
-                  placeholder="you@example.com"
+                  placeholder=""
                   autoComplete="email"
-                  required
+                  required={false}
                   disabled={vm.loading || vm.cooldown > 0 || showSuccess}
                 />
 
-                {/* Button */}
-                <button
+                {/* Log In text in middle */}
+                <div className="text-center my-6">
+                  <Link to="/login" className="text-[12px] font-bold hover:underline" style={{ color: colors.link }}>
+                    Log In?
+                  </Link>
+                </div>
+
+                <Button
                   type="submit"
                   disabled={isDisabled}
-                  className={`w-full font-semibold py-2 px-4 mt-6 transition-colors disabled:cursor-not-allowed ${
-                    vm.cooldown > 0 || vm.loading
-                      ? 'bg-gray-400 text-gray-700'
-                      : 'bg-black hover:bg-gray-900 text-white'
-                  }`}
+                  className={`mt-4 ${vm.cooldown > 0 || vm.loading ? 'bg-gray-400 text-gray-700' : ''}`}
                 >
-                  {vm.cooldown > 0
-                    ? `Wait ${vm.cooldown}s`
-                    : 'Send Reset Link'}
-                </button>
+                  {vm.cooldown > 0 ? `Wait ${vm.cooldown}s` : 'Send Reset Link'}
+                </Button>
 
-                {/* Countdown */}
                 {vm.cooldown > 0 && (
-                  <p className="text-sm text-gray-600 mt-2 text-center">
+                  <p className="text-xs text-gray-600 mt-3 text-center">
                     You can request another email in {vm.cooldown} seconds
                   </p>
                 )}
@@ -121,21 +115,8 @@ export const ResetPassword = () => {
             )}
           </form>
 
-          {/* Back to login (manual only) */}
-          <div className="mt-6 text-center">
-            <p className="text-black">
-              Remember your password?{' '}
-              <Link
-                to="/login"
-                className="text-black font-semibold underline hover:text-gray-700"
-              >
-                Sign in
-              </Link>
-            </p>
-          </div>
-
-        </div>
+        </Card>
       </div>
-    </div>
+    </>
   );
 };

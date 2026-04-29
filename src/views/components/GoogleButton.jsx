@@ -7,12 +7,13 @@ export const GoogleButton = ({ onClick, disabled }) => {
       disabled={disabled}
       className="
         w-full
+        h-[42px]
         flex items-center justify-center
         gap-3
         bg-white
         border border-gray-300
-        py-2.5 px-4
-        rounded
+        px-4
+        rounded-full
         shadow-sm
         hover:bg-gray-50
         active:bg-gray-100
@@ -22,7 +23,7 @@ export const GoogleButton = ({ onClick, disabled }) => {
     >
       <FcGoogle size={20} />
       
-      <span className="text-sm font-medium text-gray-700">
+      <span className="text-[12px] font-medium text-gray-700">
         Sign in with Google
       </span>
     </button>

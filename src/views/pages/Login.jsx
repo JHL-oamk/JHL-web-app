@@ -5,14 +5,21 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useLoginViewModel } from '../../viewModels/useLoginViewModel';
-import { FormInput } from '../components/FormInput';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { GoogleButton } from "../components/GoogleButton";
+import { Card } from '../components/Card';
+import { Title } from '../components/Title';
+import { TextInput } from '../components/TextInput';
+import { Button } from '../components/Button';
+
+import { Navbar } from '../components/Navbar';
+import colors from '../../config/colors';
 
 export const Login = ({ authViewModel }) => {
   const navigate = useNavigate();
   const loginForm = useLoginViewModel();
   const [showSuccess, setShowSuccess] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,7 +36,7 @@ export const Login = ({ authViewModel }) => {
       loginForm.resetForm();
 
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/settings');
       }, 1500);
     }
   };
@@ -42,43 +49,34 @@ const handleGoogleLogin = async () => {
     setShowSuccess(true);
 
     setTimeout(() => {
-      navigate("/dashboard");
+      navigate("/settings");
     }, 1500);
   }
 };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white border-2 border-black p-8 md:p-10">
-
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-black mb-2">
-              Welcome Back
-            </h1>
-            <p className="text-gray-700">
-              Sign in to your account to continue
+    <>
+      <Navbar authViewModel={authViewModel} />
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-0 pb-8">
+        <Title text="LOG IN" />
+        <Card>
+          {/* Success Message */}
+        {showSuccess && (
+          <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
+            <p className="text-black text-[12px] font-medium">
+              ✓ Login successful! Redirecting...
             </p>
           </div>
+        )}
 
-          {/* Success Message */}
-          {showSuccess && (
-            <div className="mb-6 p-4 bg-white border-2 border-black">
-              <p className="text-black text-sm font-medium">
-                ✓ Login successful! Redirecting...
-              </p>
-            </div>
-          )}
-
-          {/* Error Message */}
-          {authViewModel.error && !showSuccess && (
-            <div className="mb-6 p-4 bg-white border-2 border-black">
-              <p className="text-black text-sm font-medium">
-                {authViewModel.error}
-              </p>
-            </div>
-          )}
+        {/* Error Message */}
+        {authViewModel.error && !showSuccess && (
+          <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
+            <p className="text-black text-[12px] font-medium">
+              {authViewModel.error}
+            </p>
+          </div>
+        )}
 
           {/* Form */}
           <form onSubmit={handleSubmit}>
@@ -86,8 +84,8 @@ const handleGoogleLogin = async () => {
               <LoadingSpinner message="Logging in..." />
             ) : (
               <>
-                <FormInput
-                  label="Email Address"
+                <TextInput
+                  label="Email"
                   name="email"
                   type="email"
                   value={loginForm.formData.email}
@@ -100,7 +98,7 @@ const handleGoogleLogin = async () => {
                   disabled={authViewModel.isLoading}
                 />
 
-                <FormInput
+                <TextInput
                   label="Password"
                   name="password"
                   type="password"
@@ -115,22 +113,36 @@ const handleGoogleLogin = async () => {
                 />
 
                 {/* Forgot password link */}
-                <div className="text-right mt-2">
+                <div className="text-center mt-3 mb-6">
                   <Link
                     to="/resetpassword"
-                    className="text-black text-sm font-semibold underline hover:text-gray-700"
+                    className="text-[12px] font-medium hover:underline"
+                    style={{ color: colors.darkGrey }}
                   >
-                    Forgot password?
+                    Forgot your password?
                   </Link>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={authViewModel.isLoading || showSuccess}
-                  className="w-full bg-black hover:bg-gray-900 text-white font-semibold py-2 px-4 mt-6 disabled:bg-gray-500 disabled:cursor-not-allowed"
-                >
-                  Sign In
-                </button>
+                <div className="flex items-center justify-center gap-2 mb-6">
+                  <input
+                    type="checkbox"
+                    id="remember"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded-sm appearance-none flex items-center justify-center relative cursor-pointer border-2 transition-all"
+                    style={{
+                      borderColor: colors.highlight,
+                      backgroundColor: rememberMe ? colors.highlight : 'transparent'
+                    }}
+                  />
+                  <label htmlFor="remember" className="text-[12px] font-medium cursor-pointer" style={{ color: colors.darkGrey }}>
+                    Remember me
+                  </label>
+                </div>
+
+                <Button type="submit" className="mt-6" disabled={authViewModel.isLoading || showSuccess}>
+                  Log In
+                </Button>
               </>
             )}
           </form>
@@ -144,25 +156,26 @@ const handleGoogleLogin = async () => {
 
         {/* Google Login */}
         <GoogleButton
-         onClick={handleGoogleLogin}
-         disabled={authViewModel.isLoading}
+          onClick={handleGoogleLogin}
+          disabled={authViewModel.isLoading}
         />
 
           {/* Sign Up Link */}
-          <div className="mt-6 text-center">
-            <p className="text-black">
+          <div className="mt-8 text-center text-[12px] font-medium" style={{ color: colors.darkGrey }}>
+            <p>
               Don't have an account?{' '}
               <Link
                 to="/signup"
-                className="text-black hover:text-gray-700 font-semibold underline"
+                className="font-bold hover:underline"
+                style={{ color: colors.link }}
               >
-                Sign up
+                Sign up!
               </Link>
             </p>
           </div>
 
-        </div>
+        </Card>
       </div>
-    </div>
+    </>
   );
 };
