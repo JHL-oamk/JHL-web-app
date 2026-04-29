@@ -61,7 +61,16 @@ function App() {
             )
           }
         />
-        <Route path="/chatbot" element={<Chatbot authViewModel={authViewModel} />} />
+        <Route
+          path="/chatbot"
+          element={
+            authViewModel.isAuthenticated ? (
+              <Chatbot authViewModel={authViewModel} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
         <Route
           path="/"
           element={
