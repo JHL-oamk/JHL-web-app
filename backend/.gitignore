@@ -1,0 +1,56 @@
+# =====================
+# DEPENDENCIES
+# =====================
+node_modules/
+*/node_modules/
+
+# =====================
+# BUILD OUTPUTS
+# =====================
+dist/
+build/
+*/dist/
+*/build/
+
+# =====================
+# ENV FILES (TÄRKEÄ)
+# =====================
+.env
+.env.local
+.env.development
+.env.production
+backend/.env
+frontend/.env
+
+# =====================
+# LOGS
+# =====================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =====================
+# OS FILES
+# =====================
+.DS_Store
+Thumbs.db
+
+# =====================
+# VITE / REACT
+# =====================
+.vite/
+coverage/
+
+# =====================
+# IDE
+# =====================
+.vscode/
+.idea/
+
+# =====================
+# FIREBASE / SERVICE KEYS
+# =====================
+serviceAccountKey.json
+*.pem
