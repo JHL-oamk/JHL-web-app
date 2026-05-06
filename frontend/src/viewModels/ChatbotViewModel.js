@@ -9,7 +9,7 @@ import {
 } from "../models/ChatbotModel";
 
 import { logoutApi } from "../models/authApi";
-import { askGemini } from "../models/geminiApi";
+import { askClaude } from "../models/ClaudeApi";
 
 export const useChatbotViewModel = () => {
   const navigate = useNavigate();
@@ -75,7 +75,7 @@ export const useChatbotViewModel = () => {
     setMessages(loadingMessages);
 
     try {
-      const aiReply = await askGemini(input, selectedLaws);
+      const aiReply = await askClaude(input, selectedLaws);
 
       setMessages([
         ...updatedMessages,
