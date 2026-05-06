@@ -8,14 +8,16 @@ const queryRoutes = require('./routes/queryRoutes');
 const resultRoutes = require('./routes/resultRoutes');
 const claudeRoutes = require('./routes/claudeRoutes');
 
-
 const app = express();
 
-app.use(cors({
+const corsOptions = {
   origin: 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
+
+app.use(cors(corsOptions));
+app.options(/(.*)/,  cors(corsOptions));
 
 app.use(express.json());
 
