@@ -1,13 +1,12 @@
-/**
- * question: string
- * selectedLaws: string[] (law links)
- */
 export async function askClaude(question, selectedLaws = []) {
   try {
+    const token = localStorage.getItem("authToken"); // ← lisätty
+
     const response = await fetch("/api/claude", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`  // ← lisätty
       },
       body: JSON.stringify({
         question,

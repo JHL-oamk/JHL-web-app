@@ -6,6 +6,8 @@ const { verifyToken } = require('./middleware/authMiddleware');
 const userRoutes = require('./routes/userRoutes');
 const queryRoutes = require('./routes/queryRoutes');
 const resultRoutes = require('./routes/resultRoutes');
+const claudeRoutes = require('./routes/claudeRoutes');
+
 
 const app = express();
 
@@ -26,5 +28,6 @@ app.get('/api/health', (req, res) => {
 app.use('/api/users', verifyToken, userRoutes);
 app.use('/api/queries', verifyToken, queryRoutes);
 app.use('/api/results', verifyToken, resultRoutes);
+app.use('/api/claude', claudeRoutes);
 
 module.exports = app;
