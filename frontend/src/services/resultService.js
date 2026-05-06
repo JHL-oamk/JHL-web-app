@@ -1,29 +1,15 @@
-import { db } from "../config/firebase";
-import {
-  addDoc,
-  collection,
-  query,
-  where,
-  orderBy,
-  getDocs,
-  serverTimestamp
-} from "firebase/firestore";
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const createResult = async (queryId, answer, sources = []) => {
-  return await addDoc(collection(db, "results"), {
-    queryId,
-    answer,
-    sources,
-    createdAt: serverTimestamp()
+  const response = await fetch(`${API_URL}/api/results`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ queryId, answer, sources })
   });
+  return await response.json();
 };
 
 export const getResultsByQueryId = async (queryId) => {
-  const q = query(
-    collection(db, "results"),
-    where("queryId", "==", queryId)
-  );
-
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const response = await fetch(`${API_URL}/api/results/${queryId}`);
+  return await response.json();
 };

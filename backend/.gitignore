@@ -54,3 +54,4 @@ coverage/
 # =====================
 serviceAccountKey.json
 *.pem
+*.json
