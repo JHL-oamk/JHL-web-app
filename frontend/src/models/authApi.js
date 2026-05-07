@@ -16,8 +16,11 @@ const API_URL = import.meta.env.VITE_API_URL;
 const getAuthHeaders = async (firebaseUser) => {
   const token = await firebaseUser.getIdToken();
   return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    token
   };
 };
 
@@ -29,13 +32,25 @@ export const loginApi = async (email, password) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const firebaseUser = userCredential.user;
 
-    const response = await fetch(`${API_URL}/api/users/${firebaseUser.uid}`, {
-      headers: await getAuthHeaders(firebaseUser)
-    });
+    const { headers, token } = await getAuthHeaders(firebaseUser);
+
+    const response = await fetch(`${API_URL}/api/users/${firebaseUser.uid}`, { headers });
     const firestoreUser = response.ok ? await response.json() : null;
 
+    // Auto-create user in DB if missing
     if (!firestoreUser) {
-      console.warn("User missing for uid:", firebaseUser.uid);
+      await fetch(`${API_URL}/api/users`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          username: firebaseUser.displayName || "User",
+          organisation: null,
+          role: "user",
+          createdAt: new Date(),
+        })
+      });
     }
 
     const user = new User(
@@ -44,9 +59,7 @@ export const loginApi = async (email, password) => {
       firestoreUser?.username || firebaseUser.displayName || "User"
     );
 
-    const token = await firebaseUser.getIdToken();
     localStorage.setItem("authToken", token);
-    console.log("TOKEN:", token); // debug
 
     return new AuthResponse(true, "Login successful", user, token);
 
@@ -65,9 +78,11 @@ export const registerApi = async (email, username, password, organisation) => {
 
     await updateProfile(firebaseUser, { displayName: username });
 
+    const { headers, token } = await getAuthHeaders(firebaseUser);
+
     await fetch(`${API_URL}/api/users`, {
       method: 'POST',
-      headers: await getAuthHeaders(firebaseUser),
+      headers,
       body: JSON.stringify({
         uid: firebaseUser.uid,
         email: firebaseUser.email,
@@ -79,7 +94,6 @@ export const registerApi = async (email, username, password, organisation) => {
     });
 
     const user = new User(firebaseUser.uid, firebaseUser.email, username);
-    const token = await firebaseUser.getIdToken();
     localStorage.setItem("authToken", token);
 
     return new AuthResponse(true, "Registration successful", user, token);
@@ -123,15 +137,15 @@ export const loginWithGoogleApi = async () => {
     const result = await signInWithPopup(auth, provider);
     const firebaseUser = result.user;
 
-    const response = await fetch(`${API_URL}/api/users/${firebaseUser.uid}`, {
-      headers: await getAuthHeaders(firebaseUser)
-    });
+    const { headers, token } = await getAuthHeaders(firebaseUser);
+
+    const response = await fetch(`${API_URL}/api/users/${firebaseUser.uid}`, { headers });
     const firestoreUser = response.ok ? await response.json() : null;
 
     if (!firestoreUser) {
       await fetch(`${API_URL}/api/users`, {
         method: 'POST',
-        headers: await getAuthHeaders(firebaseUser),
+        headers,
         body: JSON.stringify({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
@@ -149,7 +163,6 @@ export const loginWithGoogleApi = async () => {
       firestoreUser?.username || firebaseUser.displayName || "User"
     );
 
-    const token = await firebaseUser.getIdToken();
     localStorage.setItem("authToken", token);
 
     return new AuthResponse(true, "Google login successful", user, token);
