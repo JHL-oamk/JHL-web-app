@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Button } from '../components/Button';
 import colors from '../../config/colors';
@@ -30,7 +30,7 @@ const buildInitialCategories = () => ([
   },
   {
     id: 2,
-    title: 'Work',
+    title: 'Study',
     sources: [
       {
         id: 201,
@@ -48,7 +48,7 @@ const buildInitialCategories = () => ([
   },
   {
     id: 3,
-    title: 'Work',
+    title: 'Something else',
     sources: [
       {
         id: 301,
@@ -67,6 +67,8 @@ export const LawSources = ({ authViewModel }) => {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryTitle, setNewCategoryTitle] = useState('');
   const [sourceDrafts, setSourceDrafts] = useState({});
+  const addCategoryRef = useRef(null);
+  const sourceDraftRefs = useRef({});
 
   const filteredCategories = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -136,12 +138,55 @@ export const LawSources = ({ authViewModel }) => {
     }));
   };
 
+  const isSourceDraftEmpty = (draft) => {
+    if (!draft) return true;
+    const title = draft.title?.trim();
+    const url = draft.url?.trim();
+    return !title && !url && !draft.fileName && !draft.fileUrl;
+  };
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (showAddCategory && !newCategoryTitle.trim()) {
+        if (addCategoryRef.current && !addCategoryRef.current.contains(event.target)) {
+          setShowAddCategory(false);
+        }
+      }
+
+      setSourceDrafts((prev) => {
+        let hasChanges = false;
+        const next = { ...prev };
+
+        Object.entries(prev).forEach(([categoryId, draft]) => {
+          if (!draft?.open || !isSourceDraftEmpty(draft)) return;
+          const draftRef = sourceDraftRefs.current[categoryId];
+          if (draftRef && draftRef.contains(event.target)) return;
+          next[categoryId] = {
+            ...draft,
+            open: false
+          };
+          hasChanges = true;
+        });
+
+        return hasChanges ? next : prev;
+      });
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [showAddCategory, newCategoryTitle]);
+
   const handleSourceDraftChange = (categoryId, field, value) => {
     setSourceDrafts((prev) => ({
       ...prev,
       [categoryId]: {
         ...prev[categoryId],
-        [field]: value
+        [field]: value,
+        ...(field === 'url' && value.trim()
+          ? { fileName: '', fileUrl: '' }
+          : {})
       }
     }));
   };
@@ -153,8 +198,20 @@ export const LawSources = ({ authViewModel }) => {
       ...prev,
       [categoryId]: {
         ...prev[categoryId],
+        url: '',
         fileName: file.name,
         fileUrl
+      }
+    }));
+  };
+
+  const handleClearFile = (categoryId) => {
+    setSourceDrafts((prev) => ({
+      ...prev,
+      [categoryId]: {
+        ...prev[categoryId],
+        fileName: '',
+        fileUrl: ''
       }
     }));
   };
@@ -201,12 +258,13 @@ export const LawSources = ({ authViewModel }) => {
   const renderSource = (categoryId, source) => (
     <div key={source.id} className="flex items-start justify-between gap-6 py-2">
       <div>
-        <div className="text-[12px] font-semibold text-black">{source.title}</div>
+        <div className="text-sm font-semibold" style={{ color: colors.black }}>{source.title}</div>
         <a
           href={source.url}
           target="_blank"
           rel="noreferrer"
-          className="text-[11px] text-[#1192E8] underline"
+          className="text-sm underline"
+          style={{ color: colors.link }}
         >
           {source.url}
         </a>
@@ -215,7 +273,7 @@ export const LawSources = ({ authViewModel }) => {
         <button
           type="button"
           onClick={() => handleDeleteSource(categoryId, source.id)}
-          className="text-[#9A9A9A] hover:text-black"
+          style={{ color: colors.darkGrey }}
         >
           ✕
         </button>
@@ -224,22 +282,22 @@ export const LawSources = ({ authViewModel }) => {
   );
 
   return (
-    <div className="min-h-screen bg-white pt-[50px]">
+    <div className="min-h-screen pt-[50px]" style={{ color: colors.black, backgroundColor: colors.white }}>
       <Navbar authViewModel={authViewModel} />
 
       <div className="max-w-[980px] mx-auto px-8 py-10">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-[22px] font-bold text-black mb-1">Law Sources List</h1>
+            <h1 className="text-xl font-bold mb-1" style={{ color: colors.black }}>Law Sources List</h1>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-[#F4F4F4] rounded-full px-4 h-[36px]">
-              <span className="text-[#9A9A9A]">⌕</span>
+            <div className="flex items-center gap-2 rounded-full px-4 h-[36px]" style={{ backgroundColor: colors.lightGrey }}>
+              <span className="text-sm" style={{ color: colors.darkGrey }}>⌕</span>
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search keywords..."
-                className="bg-transparent text-[12px] w-[160px] outline-none"
+                className="bg-transparent text-xs w-[160px] outline-none"
               />
             </div>
             {categories.length > 0 && (
@@ -256,30 +314,37 @@ export const LawSources = ({ authViewModel }) => {
         </div>
 
         <div className="mt-6">
-          {(isEditMode || categories.length === 0) && (
+          {(isEditMode || categories.length === 0) && !showAddCategory && (
             <button
               type="button"
               onClick={handleAddCategoryToggle}
-              className="flex items-center gap-2 bg-[#F4F4F4] text-[12px] text-[#7D7D7D] rounded-full px-4 py-2"
+              className="flex items-center gap-2 rounded-full px-4 py-2 text-xs"
+              style={{ backgroundColor: colors.lightGrey, color: colors.darkGrey }}
             >
-              <span className="text-[14px]">＋</span>
+              <span className="text-sm font-bold">＋</span>
               Add New Category
             </button>
           )}
 
           {showAddCategory && (
-            <div className="mt-3 flex items-center gap-3 bg-[#F4F4F4] rounded-full px-4 py-2 max-w-[420px]">
-              <span className="text-[12px] text-[#7D7D7D]">Title:</span>
+            <div
+              ref={addCategoryRef}
+              className="mt-2 flex items-center gap-4 rounded-full px-6 py-2 max-w-[560px]"
+              style={{ backgroundColor: colors.lightGrey }}
+            >
+              <span className="text-xs w-[64px]" style={{ color: colors.darkGrey }}>Title:</span>
               <input
                 value={newCategoryTitle}
                 onChange={(event) => setNewCategoryTitle(event.target.value)}
                 placeholder="Category name"
-                className="flex-1 bg-transparent text-[12px] outline-none"
+                className="flex-1 rounded-full px-4 py-2 text-xs outline-none"
+                style={{ backgroundColor: colors.white, color: colors.black }}
               />
               <button
                 type="button"
                 onClick={handleAddCategory}
-                className="text-[11px] bg-[#D9D9D9] text-black rounded-full px-4 py-1"
+                className="text-xs rounded-full px-4 py-2"
+                style={{ backgroundColor: colors.grey, color: colors.darkGrey }}
               >
                 + Add
               </button>
@@ -287,87 +352,138 @@ export const LawSources = ({ authViewModel }) => {
           )}
         </div>
 
-        <div className="mt-6 space-y-8">
+        <div className="mt-12 space-y-8">
           {filteredCategories.map((category) => {
             const draft = sourceDrafts[category.id];
             const canDeleteCategory = isEditMode && category.sources.length === 0;
 
             return (
-              <div key={category.id} className="border-b border-[#E7E7E7] pb-6">
+              <div key={category.id} className="pb-6">
+                {/* Category header */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-[12px] font-semibold text-black">
-                    <span className="text-[#9A9A9A]">▾</span>
+                  <div className="flex items-center gap-4 text-sm font-semibold" style={{ color: colors.black }}>
+                    <span className="text-base" style={{ color: colors.grey }}>▾</span>
                     {category.title}
                   </div>
                   {canDeleteCategory && (
                     <button
                       type="button"
                       onClick={() => handleDeleteCategory(category.id)}
-                      className="text-[#9A9A9A] hover:text-black"
+                      style={{ color: colors.darkGrey }}
                     >
                       ✕
                     </button>
                   )}
                 </div>
 
+                <div className="mt-2 border-b" style={{ borderColor: colors.grey }} />
+
+                {/* Source list */}
                 <div className="mt-3">
                   {category.sources.map((source) => renderSource(category.id, source))}
                 </div>
 
+                {/* Edit-only controls */}
                 {isEditMode && (
                   <div className="mt-4">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenSourceDraft(category.id)}
-                      className="flex items-center gap-2 bg-[#F4F4F4] text-[12px] text-[#7D7D7D] rounded-full px-4 py-2"
-                    >
-                      <span className="text-[14px]">＋</span>
-                      Add New Source
-                    </button>
+                    {!draft?.open && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenSourceDraft(category.id)}
+                        className="flex items-center gap-2 rounded-full px-4 py-2 text-xs"
+                        style={{ backgroundColor: colors.lightGrey, color: colors.darkGrey }}
+                      >
+                        <span className="text-sm font-bold">＋</span>
+                        Add New Source
+                      </button>
+                    )}
 
                     {draft?.open && (
                       <div
-                        className="mt-3 bg-[#F4F4F4] rounded-2xl px-4 py-4 max-w-[560px]"
-                        style={{ border: `1px solid ${colors.grey}` }}
+                        ref={(node) => {
+                          if (node) {
+                            sourceDraftRefs.current[category.id] = node;
+                          } else {
+                            delete sourceDraftRefs.current[category.id];
+                          }
+                        }}
+                        className="mt-2 rounded-2xl px-8 py-4 max-w-[760px]"
+                        style={{ backgroundColor: colors.lightGrey }}
                       >
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="text-[12px] text-[#7D7D7D]">Title:</span>
+                        {(() => {
+                          const hasFile = Boolean(draft.fileName);
+                          const hasLink = Boolean(draft.url?.trim());
+                          return (
+                            <>
+                        <div className="flex items-center gap-5">
+                          <span className="text-xs w-[72px]" style={{ color: colors.darkGrey }}>Title:</span>
                           <input
                             value={draft.title}
                             onChange={(event) => handleSourceDraftChange(category.id, 'title', event.target.value)}
                             placeholder="Source title"
-                            className="flex-1 bg-white rounded-full px-3 py-1 text-[12px] outline-none"
+                            className="flex-1 rounded-full px-4 py-2 text-xs outline-none"
+                            style={{ backgroundColor: colors.white, color: colors.black }}
                           />
                           <button
                             type="button"
                             onClick={() => handleAddSource(category.id)}
-                            className="text-[11px] bg-[#D9D9D9] text-black rounded-full px-4 py-1"
+                            className="text-xs rounded-full px-4 py-2"
+                            style={{ backgroundColor: colors.darkGrey, color: colors.white }}
                           >
                             + Add
                           </button>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-[12px] text-[#7D7D7D]">Source:</span>
-                          <input
-                            value={draft.url}
-                            onChange={(event) => handleSourceDraftChange(category.id, 'url', event.target.value)}
-                            placeholder="Paste source link here..."
-                            className="flex-1 bg-white rounded-full px-3 py-1 text-[12px] outline-none"
-                          />
-                          <label className="text-[11px] bg-[#D9D9D9] text-black rounded-full px-4 py-1 cursor-pointer">
-                            Upload file
-                            <input
-                              type="file"
-                              className="hidden"
-                              onChange={(event) => handleFileSelect(category.id, event.target.files?.[0])}
-                            />
-                          </label>
+                        <div className="my-3 border-b" style={{ borderColor: colors.grey }} />
+                        <div className="flex items-center gap-5">
+                          <span className="text-xs w-[72px]" style={{ color: colors.darkGrey }}>Source:</span>
+                          {hasFile ? (
+                            <>
+                              <a
+                                href={draft.fileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs underline"
+                                style={{ color: colors.link }}
+                              >
+                                {draft.fileName}
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => handleClearFile(category.id)}
+                                className="text-xs"
+                                style={{ color: colors.darkGrey }}
+                              >
+                                ✕
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <input
+                                value={draft.url}
+                                onChange={(event) => handleSourceDraftChange(category.id, 'url', event.target.value)}
+                                placeholder="Paste source link here..."
+                                className="flex-1 rounded-full px-4 py-2 text-xs outline-none"
+                                style={{ backgroundColor: colors.white, color: colors.black }}
+                              />
+                              {!hasLink && (
+                                <label
+                                  className="text-xs rounded-full px-6 py-2 cursor-pointer"
+                                  style={{ backgroundColor: colors.grey, color: colors.darkGrey }}
+                                >
+                                  Upload file
+                                  <input
+                                    type="file"
+                                    className="hidden"
+                                    onChange={(event) => handleFileSelect(category.id, event.target.files?.[0])}
+                                  />
+                                </label>
+                              )}
+                            </>
+                          )}
                         </div>
-                        {draft.fileName && (
-                          <div className="mt-2 text-[11px] text-[#6B6B6B]">
-                            {draft.fileName}
-                          </div>
-                        )}
+                            </>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
