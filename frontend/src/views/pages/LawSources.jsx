@@ -67,6 +67,7 @@ export const LawSources = ({ authViewModel }) => {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryTitle, setNewCategoryTitle] = useState('');
   const [sourceDrafts, setSourceDrafts] = useState({});
+  const [collapsedCategories, setCollapsedCategories] = useState({});
   const addCategoryRef = useRef(null);
   const sourceDraftRefs = useRef({});
 
@@ -76,11 +77,15 @@ export const LawSources = ({ authViewModel }) => {
 
     return categories
       .map((category) => {
+        const categoryMatch = category.title.toLowerCase().includes(query);
         const matchingSources = category.sources.filter((source) => {
           const haystack = `${source.title} ${source.url || ''}`.toLowerCase();
           return haystack.includes(query);
         });
-        return { ...category, sources: matchingSources };
+        return {
+          ...category,
+          sources: categoryMatch ? category.sources : matchingSources
+        };
       })
       .filter((category) => category.sources.length > 0);
   }, [categories, search]);
@@ -109,6 +114,13 @@ export const LawSources = ({ authViewModel }) => {
     setCategories((prev) => [newCategory, ...prev]);
     setShowAddCategory(false);
     setNewCategoryTitle('');
+  };
+
+  const handleToggleCategory = (categoryId) => {
+    setCollapsedCategories((prev) => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
   };
 
   const handleDeleteCategory = (categoryId) => {
@@ -292,7 +304,7 @@ export const LawSources = ({ authViewModel }) => {
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 rounded-full px-4 h-[36px]" style={{ backgroundColor: colors.lightGrey }}>
-              <span className="text-sm" style={{ color: colors.darkGrey }}>⌕</span>
+              <span className="text-3xl" style={{ color: colors.darkGrey }}>⌕</span>
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -356,15 +368,23 @@ export const LawSources = ({ authViewModel }) => {
           {filteredCategories.map((category) => {
             const draft = sourceDrafts[category.id];
             const canDeleteCategory = isEditMode && category.sources.length === 0;
+            const isCollapsed = Boolean(collapsedCategories[category.id]);
 
             return (
               <div key={category.id} className="pb-6">
                 {/* Category header */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 text-sm font-semibold" style={{ color: colors.black }}>
-                    <span className="text-base" style={{ color: colors.grey }}>▾</span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCategory(category.id)}
+                    className="flex items-center gap-4 text-sm font-semibold"
+                    style={{ color: colors.black }}
+                  >
+                    <span className="text-base" style={{ color: colors.grey }}>
+                      {isCollapsed ? '▸' : '▾'}
+                    </span>
                     {category.title}
-                  </div>
+                  </button>
                   {canDeleteCategory && (
                     <button
                       type="button"
@@ -378,115 +398,119 @@ export const LawSources = ({ authViewModel }) => {
 
                 <div className="mt-2 border-b" style={{ borderColor: colors.grey }} />
 
-                {/* Source list */}
-                <div className="mt-3">
-                  {category.sources.map((source) => renderSource(category.id, source))}
-                </div>
+                {!isCollapsed && (
+                  <>
+                    {/* Source list */}
+                    <div className="mt-3">
+                      {category.sources.map((source) => renderSource(category.id, source))}
+                    </div>
 
-                {/* Edit-only controls */}
-                {isEditMode && (
-                  <div className="mt-4">
-                    {!draft?.open && (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenSourceDraft(category.id)}
-                        className="flex items-center gap-2 rounded-full px-4 py-2 text-xs"
-                        style={{ backgroundColor: colors.lightGrey, color: colors.darkGrey }}
-                      >
-                        <span className="text-sm font-bold">＋</span>
-                        Add New Source
-                      </button>
-                    )}
-
-                    {draft?.open && (
-                      <div
-                        ref={(node) => {
-                          if (node) {
-                            sourceDraftRefs.current[category.id] = node;
-                          } else {
-                            delete sourceDraftRefs.current[category.id];
-                          }
-                        }}
-                        className="mt-2 rounded-2xl px-8 py-4 max-w-[760px]"
-                        style={{ backgroundColor: colors.lightGrey }}
-                      >
-                        {(() => {
-                          const hasFile = Boolean(draft.fileName);
-                          const hasLink = Boolean(draft.url?.trim());
-                          return (
-                            <>
-                        <div className="flex items-center gap-5">
-                          <span className="text-xs w-[72px]" style={{ color: colors.darkGrey }}>Title:</span>
-                          <input
-                            value={draft.title}
-                            onChange={(event) => handleSourceDraftChange(category.id, 'title', event.target.value)}
-                            placeholder="Source title"
-                            className="flex-1 rounded-full px-4 py-2 text-xs outline-none"
-                            style={{ backgroundColor: colors.white, color: colors.black }}
-                          />
+                    {/* Edit-only controls */}
+                    {isEditMode && (
+                      <div className="mt-4">
+                        {!draft?.open && (
                           <button
                             type="button"
-                            onClick={() => handleAddSource(category.id)}
-                            className="text-xs rounded-full px-4 py-2"
-                            style={{ backgroundColor: colors.darkGrey, color: colors.white }}
+                            onClick={() => handleOpenSourceDraft(category.id)}
+                            className="flex items-center gap-2 rounded-full px-4 py-2 text-xs"
+                            style={{ backgroundColor: colors.lightGrey, color: colors.darkGrey }}
                           >
-                            + Add
+                            <span className="text-sm font-bold">＋</span>
+                            Add New Source
                           </button>
-                        </div>
-                        <div className="my-3 border-b" style={{ borderColor: colors.grey }} />
-                        <div className="flex items-center gap-5">
-                          <span className="text-xs w-[72px]" style={{ color: colors.darkGrey }}>Source:</span>
-                          {hasFile ? (
-                            <>
-                              <a
-                                href={draft.fileUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-xs underline"
-                                style={{ color: colors.link }}
-                              >
-                                {draft.fileName}
-                              </a>
-                              <button
-                                type="button"
-                                onClick={() => handleClearFile(category.id)}
-                                className="text-xs"
-                                style={{ color: colors.darkGrey }}
-                              >
-                                ✕
-                              </button>
-                            </>
-                          ) : (
-                            <>
+                        )}
+
+                        {draft?.open && (
+                          <div
+                            ref={(node) => {
+                              if (node) {
+                                sourceDraftRefs.current[category.id] = node;
+                              } else {
+                                delete sourceDraftRefs.current[category.id];
+                              }
+                            }}
+                            className="mt-2 rounded-2xl px-8 py-4 max-w-[760px]"
+                            style={{ backgroundColor: colors.lightGrey }}
+                          >
+                            {(() => {
+                              const hasFile = Boolean(draft.fileName);
+                              const hasLink = Boolean(draft.url?.trim());
+                              return (
+                                <>
+                            <div className="flex items-center gap-5">
+                              <span className="text-xs w-[72px]" style={{ color: colors.darkGrey }}>Title:</span>
                               <input
-                                value={draft.url}
-                                onChange={(event) => handleSourceDraftChange(category.id, 'url', event.target.value)}
-                                placeholder="Paste source link here..."
+                                value={draft.title}
+                                onChange={(event) => handleSourceDraftChange(category.id, 'title', event.target.value)}
+                                placeholder="Source title"
                                 className="flex-1 rounded-full px-4 py-2 text-xs outline-none"
                                 style={{ backgroundColor: colors.white, color: colors.black }}
                               />
-                              {!hasLink && (
-                                <label
-                                  className="text-xs rounded-full px-6 py-2 cursor-pointer"
-                                  style={{ backgroundColor: colors.grey, color: colors.darkGrey }}
-                                >
-                                  Upload file
+                              <button
+                                type="button"
+                                onClick={() => handleAddSource(category.id)}
+                                className="text-xs rounded-full px-4 py-2"
+                                style={{ backgroundColor: colors.darkGrey, color: colors.white }}
+                              >
+                                + Add
+                              </button>
+                            </div>
+                            <div className="my-3 border-b" style={{ borderColor: colors.grey }} />
+                            <div className="flex items-center gap-5">
+                              <span className="text-xs w-[72px]" style={{ color: colors.darkGrey }}>Source:</span>
+                              {hasFile ? (
+                                <>
+                                  <a
+                                    href={draft.fileUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-xs underline"
+                                    style={{ color: colors.link }}
+                                  >
+                                    {draft.fileName}
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleClearFile(category.id)}
+                                    className="text-xs"
+                                    style={{ color: colors.darkGrey }}
+                                  >
+                                    ✕
+                                  </button>
+                                </>
+                              ) : (
+                                <>
                                   <input
-                                    type="file"
-                                    className="hidden"
-                                    onChange={(event) => handleFileSelect(category.id, event.target.files?.[0])}
+                                    value={draft.url}
+                                    onChange={(event) => handleSourceDraftChange(category.id, 'url', event.target.value)}
+                                    placeholder="Paste source link here..."
+                                    className="flex-1 rounded-full px-4 py-2 text-xs outline-none"
+                                    style={{ backgroundColor: colors.white, color: colors.black }}
                                   />
-                                </label>
+                                  {!hasLink && (
+                                    <label
+                                      className="text-xs rounded-full px-6 py-2 cursor-pointer"
+                                      style={{ backgroundColor: colors.grey, color: colors.darkGrey }}
+                                    >
+                                      Upload file
+                                      <input
+                                        type="file"
+                                        className="hidden"
+                                        onChange={(event) => handleFileSelect(category.id, event.target.files?.[0])}
+                                      />
+                                    </label>
+                                  )}
+                                </>
                               )}
-                            </>
-                          )}
-                        </div>
-                            </>
-                          );
-                        })()}
+                            </div>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             );
