@@ -19,6 +19,10 @@ export const lawsList = [
   }
 ];
 
+// ChatbotModel.js
 export const initialMessages = [
-  { role: "assistant", content: "Hello! Ask me any legal question." }
+  {
+    role: "assistant",
+    content: "WELCOME_VIEW" // We use a unique string to identify the special UI
+  }
 ];

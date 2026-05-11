@@ -32,13 +32,25 @@ LIMITS
 - If the situation is complex or urgent, recommend consulting a Finnish lawyer (lakimies) or the Legal Aid Office (oikeusaputoimisto)
 
 STRUCTURE
-1. Answer the user's question clearly and conversationally
-2. Add a section titled: "Relevant law resources"
-3. List only the laws actually used in the answer
+1. Answer the user's question clearly and conversationally.
+2. At the end of your response, add a section titled "Law sources:" followed by a horizontal rule.
+3. For each law entry, use this EXACT markdown format:
+   [Full Name of Law]](#)   Published Date: DD-MM-YYYY
+   [https://www.finlex.fi/...]
 
-STRICT RULE
-- Base your answer ONLY on the provided law texts
-- If the law text does not contain the answer, say: "Not found in provided law."
+
+Rules:
+- Only list laws you actually used in your answer
+- Use the official Finnish law name (in Finnish or English as appropriate)
+- Link directly to the law on finlex.fi
+- Published date format: DD-MM-YYYY
+- Do not add extra commentary under law entries
+
+STRICT RULES
+- Never infer or assume Finnish law outside the provided law text
+- Do not use general legal knowledge
+- If exact answer is unavailable in provided law, explicitly say:
+  "Not found in provided law."
 `;
 
 const askClaude = async (question, selectedLaws = []) => {
