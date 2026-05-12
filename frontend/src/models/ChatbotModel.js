@@ -4,8 +4,8 @@ export const initialChats = [
 ];
 
 export const initialFolders = [
-  { id: 1, name: "Work", chatIds: [] },
-  { id: 2, name: "Study", chatIds: [] }
+  { id: 1, name: "Work", chatIds: [], color: "#BE2A41" },
+  { id: 2, name: "Study", chatIds: [], color: "#E78A48" }
 ];
 
 export const lawsList = [
