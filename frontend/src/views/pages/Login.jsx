@@ -36,7 +36,7 @@ export const Login = ({ authViewModel }) => {
       loginForm.resetForm();
 
       setTimeout(() => {
-        navigate('/settings');
+        navigate('/chatbot');
       }, 1500);
     }
   };
@@ -49,7 +49,7 @@ const handleGoogleLogin = async () => {
     setShowSuccess(true);
 
     setTimeout(() => {
-      navigate("/settings");
+      navigate("/chatbot");
     }, 1500);
   }
 };
