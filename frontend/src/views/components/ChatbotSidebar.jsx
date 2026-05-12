@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Folder, History, Scale } from 'lucide-react';
 import colors from '../../config/colors';
 
 export const ChatbotSidebar = ({ vm }) => {
+  const sidebarRef = useRef(null);
   const [openLawLink, setOpenLawLink] = useState(null);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -24,6 +25,94 @@ export const ChatbotSidebar = ({ vm }) => {
   const [openAddToFolderChatId, setOpenAddToFolderChatId] = useState(null);
   const [editingFolderId, setEditingFolderId] = useState(null);
   const [editingFolderName, setEditingFolderName] = useState('');
+  const [collapsedCategoryIds, setCollapsedCategoryIds] = useState([]);
+
+  const lawCategories = [
+    {
+      id: 'work',
+      name: 'Work',
+      sources: [
+        {
+          name: 'Finnish Employment Contracts Act',
+          link: 'https://www.finlex.fi/en/legislation/2001/55'
+        },
+        {
+          name: 'Working Hours Act',
+          link: 'https://www.finlex.fi/en/legislation/2019/872'
+        },
+        {
+          name: 'Occupational Safety and Health Act',
+          link: 'https://www.finlex.fi/en/legislation/2002/738'
+        }
+      ]
+    },
+    {
+      id: 'contracts',
+      name: 'Contracts',
+      sources: [
+        {
+          name: 'Contract Law Act',
+          link: 'https://www.finlex.fi/en/legislation/1929/228'
+        },
+        {
+          name: 'Act on the Publicity of Government Activities',
+          link: 'https://www.finlex.fi/fi/lainsaadanto/1999/621'
+        },
+        {
+          name: 'Consumer Protection Act',
+          link: 'https://www.finlex.fi/en/legislation/1978/38'
+        }
+      ]
+    }
+  ];
+
+  const handleClearDropdowns = () => {
+    setOpenMenu(null);
+    setOpenAddToFolderChatId(null);
+    setOpenFolderColorId(null);
+  };
+
+  useEffect(() => {
+    const handleDocumentClick = (event) => {
+      const sidebar = sidebarRef.current;
+      if (!sidebar) return;
+
+      const target = event.target;
+      const isInteractive = target.closest(
+        'button, input, a, textarea, select, [data-dropdown-interactive="true"]'
+      );
+
+      if (isInteractive) return;
+      handleClearDropdowns();
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+    return () => document.removeEventListener('click', handleDocumentClick);
+  }, []);
+
+  const handleCategoryToggle = (category) => {
+    const categoryLinks = category.sources.map((source) => source.link);
+    const isAllSelected = categoryLinks.every((link) => vm.selectedLaws.includes(link));
+    if (isAllSelected) {
+      vm.setSelectedLaws((prev) => prev.filter((link) => !categoryLinks.includes(link)));
+      return;
+    }
+    vm.setSelectedLaws((prev) => {
+      const merged = [...prev];
+      categoryLinks.forEach((link) => {
+        if (!merged.includes(link)) merged.push(link);
+      });
+      return merged;
+    });
+  };
+
+  const toggleCategoryCollapse = (categoryId) => {
+    setCollapsedCategoryIds((prev) =>
+      prev.includes(categoryId)
+        ? prev.filter((id) => id !== categoryId)
+        : [...prev, categoryId]
+    );
+  };
 
   const handleCreateFolder = () => {
     const name = newFolderName.trim();
@@ -99,7 +188,11 @@ export const ChatbotSidebar = ({ vm }) => {
   };
 
   return (
-    <aside className="w-[280px] bg-white border-r flex flex-col" style={{ borderColor: colors.grey }}>
+    <aside
+      ref={sidebarRef}
+      className="w-[280px] bg-white border-r flex flex-col"
+      style={{ borderColor: colors.grey }}
+    >
       {/* New chat */}
       <div className="px-6 pt-6">
         <button
@@ -136,10 +229,6 @@ export const ChatbotSidebar = ({ vm }) => {
                   key={chat.id}
                   className="relative"
                   style={{ paddingRight: 170, marginRight: -170 }}
-                  onMouseLeave={() => {
-                    setOpenMenu(null);
-                    setOpenAddToFolderChatId(null);
-                  }}
                 >
                   <div className="relative group flex items-center justify-between">
                     <button
@@ -163,7 +252,7 @@ export const ChatbotSidebar = ({ vm }) => {
                     </button>
 
                     {openMenu?.type === 'chat' && openMenu?.id === chat.id && (
-                      <div className="absolute right-0 top-5 z-10">
+                      <div className="absolute right-0 top-5 z-10" data-dropdown-interactive="true">
                         <div className="relative w-36 bg-white border border-gray-200 shadow-md text-[11px]">
                           <button
                             className="w-full text-left px-3 py-2 hover:bg-gray-100"
@@ -182,7 +271,10 @@ export const ChatbotSidebar = ({ vm }) => {
                             Add to folder
                           </button>
                           {openAddToFolderChatId === chat.id && (
-                            <div className="absolute left-full top-0 ml-1 w-40 bg-white border border-gray-200 shadow-md">
+                            <div
+                              className="absolute left-full top-0 ml-1 w-40 bg-white border border-gray-200 shadow-md"
+                              data-dropdown-interactive="true"
+                            >
                               {vm.folders.length === 0 && (
                                 <p className="px-3 py-2 text-[10px]" style={{ color: colors.darkGrey }}>
                                   No folders
@@ -299,7 +391,6 @@ export const ChatbotSidebar = ({ vm }) => {
                 key={folder.id}
                 className="relative"
                 style={{ paddingRight: 170, marginRight: -170 }}
-                onMouseLeave={() => setOpenMenu(null)}
               >
                 <div className="group flex items-center justify-between">
                   <div className="flex items-center gap-2 flex-1">
@@ -337,7 +428,11 @@ export const ChatbotSidebar = ({ vm }) => {
                 </div>
 
                 {openFolderColorId === folder.id && (
-                  <div className="absolute right-0 mt-1 flex items-center gap-2 rounded-md border bg-white px-2 py-1 shadow-sm z-10" style={{ borderColor: colors.grey }}>
+                  <div
+                    className="absolute right-0 mt-1 flex items-center gap-2 rounded-md border bg-white px-2 py-1 shadow-sm z-10"
+                    style={{ borderColor: colors.grey }}
+                    data-dropdown-interactive="true"
+                  >
                     {folderColors.map((color) => (
                       <button
                         key={color}
@@ -358,7 +453,7 @@ export const ChatbotSidebar = ({ vm }) => {
                 )}
 
                 {openMenu?.type === 'folder' && openMenu?.id === folder.id && (
-                  <div className="absolute right-2 top-4 z-10">
+                  <div className="absolute right-2 top-4 z-10" data-dropdown-interactive="true">
                     <div className="w-36 bg-white border border-gray-200 shadow-md text-[11px]">
                       <button
                         className="w-full text-left px-3 py-2 hover:bg-gray-100"
@@ -425,7 +520,6 @@ export const ChatbotSidebar = ({ vm }) => {
                           key={chat.id}
                           className="relative"
                           style={{ paddingRight: 170, marginRight: -170 }}
-                          onMouseLeave={() => setOpenMenu(null)}
                         >
                           <div className="relative group flex items-center justify-between">
                             <button
@@ -449,7 +543,7 @@ export const ChatbotSidebar = ({ vm }) => {
                             </button>
 
                             {openMenu?.type === 'folderChat' && openMenu?.id === chat.id && (
-                              <div className="absolute right-0 top-5 z-10">
+                              <div className="absolute right-0 top-5 z-10" data-dropdown-interactive="true">
                                 <div className="w-36 bg-white border border-gray-200 shadow-md text-[11px]">
                                   <button
                                     className="w-full text-left px-3 py-2 hover:bg-gray-100"
@@ -505,39 +599,75 @@ export const ChatbotSidebar = ({ vm }) => {
         </div>
 
         {vm.showLawSource && (
-          <div className="mt-3 space-y-2">
-            {vm.laws.map((law) => (
-              <div key={law.link} className="flex items-start gap-2">
-                <input
-                  type="checkbox"
-                  checked={vm.selectedLaws.includes(law.link)}
-                  onChange={() => vm.toggleLaw(law.link)}
-                  className="mt-1"
-                  style={{ accentColor: colors.primary }}
-                />
-                <button
-                  type="button"
-                  className="text-left"
-                  onClick={() =>
-                    setOpenLawLink(openLawLink === law.link ? null : law.link)
-                  }
-                >
-                  <p className="text-[12px] text-black">{law.name}</p>
-                  {openLawLink === law.link && (
-                    <a
-                      href={law.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] underline block max-w-[160px] truncate"
-                      style={{ color: colors.link }}
-                      title={law.link}
+          <div className="mt-3 space-y-6">
+            {lawCategories.map((category) => {
+              const categoryLinks = category.sources.map((source) => source.link);
+              const isCategorySelected = categoryLinks.every((link) =>
+                vm.selectedLaws.includes(link)
+              );
+              const isCollapsed = collapsedCategoryIds.includes(category.id);
+
+              return (
+                <div key={category.id}>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={isCategorySelected}
+                      onChange={() => handleCategoryToggle(category)}
+                      className="mt-0.5"
+                      style={{ accentColor: colors.primary }}
+                    />
+                    <p className="text-[12px] text-black">{category.name}</p>
+                    <button
+                      type="button"
+                      className="text-[12px]"
+                      style={{ color: colors.darkGrey }}
+                      onClick={() => toggleCategoryCollapse(category.id)}
+                      aria-label={isCollapsed ? 'Expand category' : 'Collapse category'}
                     >
-                      {law.link}
-                    </a>
+                      {isCollapsed ? '▸' : '▾'}
+                    </button>
+                  </div>
+                  <div className="mt-2" style={{ borderBottom: `1px solid ${colors.lightGrey}` }} />
+                  {!isCollapsed && (
+                    <div className="mt-2 space-y-2">
+                      {category.sources.map((law) => (
+                        <div key={law.link} className="flex items-start gap-2">
+                          <input
+                            type="checkbox"
+                            checked={vm.selectedLaws.includes(law.link)}
+                            onChange={() => vm.toggleLaw(law.link)}
+                            className="mt-1"
+                            style={{ accentColor: colors.primary }}
+                          />
+                          <button
+                            type="button"
+                            className="text-left"
+                            onClick={() =>
+                              setOpenLawLink(openLawLink === law.link ? null : law.link)
+                            }
+                          >
+                            <p className="text-[12px] text-black">{law.name}</p>
+                            {openLawLink === law.link && (
+                              <a
+                                href={law.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[11px] underline block max-w-[200px] truncate"
+                                style={{ color: colors.link }}
+                                title={law.link}
+                              >
+                                {law.link}
+                              </a>
+                            )}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </button>
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
