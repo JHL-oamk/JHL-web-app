@@ -11,27 +11,25 @@ import {
 import { logoutApi } from "../models/authApi";
 import { askClaude } from "../models/ClaudeApi";
 
-export const useChatbotViewModel = () => {
+export const useChatbotViewModel = (authViewModel) => {
   const navigate = useNavigate();
 
   // ---------------- STATE ----------------
   const [chats, setChats] = useState(initialChats);
   const [folders, setFolders] = useState(initialFolders);
   const [messages, setMessages] = useState(initialMessages);
-
   const [currentChatId, setCurrentChatId] = useState(1);
   const [openChatMenuId, setOpenChatMenuId] = useState(null);
   const [openFolderId, setOpenFolderId] = useState(null);
-
   const [chatSearch, setChatSearch] = useState("");
   const [input, setInput] = useState("");
   const [selectedLaws, setSelectedLaws] = useState([]);
-
   const [showChatHistory, setShowChatHistory] = useState(true);
   const [showFolders, setShowFolders] = useState(true);
   const [showLawSource, setShowLawSource] = useState(true);
 
   const laws = lawsList;
+  const authUser = authViewModel?.user;
 
   // ---------------- AUTH ----------------
   const handleLogout = async () => {
@@ -43,51 +41,64 @@ export const useChatbotViewModel = () => {
     navigate("/login");
   };
 
-  // ---------------- CHAT ----------------
+  // ---------------- CHAT LOGIC ----------------
   const handleNewChat = () => {
-    const newChat = {
-      id: Date.now(),
-      title: "New Chat",
-      folderId: null
-    };
-
+    const newChat = { id: Date.now(), title: "New Chat", folderId: null };
     setChats(prev => [newChat, ...prev]);
     setCurrentChatId(newChat.id);
-    setMessages(initialMessages);
+    // Setting this to include WELCOME_VIEW ensures the UI shows suggestions immediately
+    setMessages([{ role: "assistant", content: "WELCOME_VIEW" }]); 
   };
 
-  // ---------------- SEND MESSAGE ----------------
-  const handleSend = async () => {
-    if (!input.trim()) return;
+  const handleSend = async (overrideInput) => {
+    const textToSend = overrideInput || input;
+    if (!textToSend.trim()) return;
 
-    const userMessage = { role: "user", content: input };
+    const userMessage = { role: "user", content: textToSend };
+    // We keep previous messages (like the WELCOME_VIEW if desired) or filtered list
     const updatedMessages = [...messages, userMessage];
 
     setMessages(updatedMessages);
     setInput("");
 
-    // show loading state
-    const loadingMessages = [
-      ...updatedMessages,
-      { role: "assistant", content: "Thinking..." }
-    ];
-
+    const loadingMessages = [...updatedMessages, { role: "assistant", content: "Thinking..." }];
     setMessages(loadingMessages);
 
     try {
-      const aiReply = await askClaude(input, selectedLaws);
-
-      setMessages([
-        ...updatedMessages,
-        { role: "assistant", content: aiReply }
-      ]);
+      const aiReply = await askClaude(textToSend, selectedLaws);
+      setMessages([...updatedMessages, { role: "assistant", content: aiReply }]);
     } catch (error) {
-      console.error(error);
+      console.error("AI Request Error:", error);
+      setMessages([...updatedMessages, { role: "assistant", content: "Error processing request." }]);
+    }
+  };
 
-      setMessages([
-        ...updatedMessages,
-        { role: "assistant", content: "AI request failed." }
-      ]);
+  /**
+   * Action for clicking suggestion links/keywords in Welcome View
+   */
+  const handleSuggestionClick = (text) => {
+    handleSend(text);
+  };
+
+  /**
+   * Action for clicking law names in AI responses
+   * Only toggles selection state.
+   */
+  const handleLawClick = (lawName) => {
+    if (!lawName) return;
+    
+    const normalizedInput = lawName.trim().toLowerCase();
+    
+    // Improved matching: find law where official name is inside input or vice versa
+    const lawMatch = laws.find(l => {
+      const officialName = l.name.toLowerCase();
+      return officialName.includes(normalizedInput) || normalizedInput.includes(officialName);
+    });
+
+    if (lawMatch) {
+      toggleLaw(lawMatch.link);
+    } else {
+      console.warn("No matching law found for selection:", lawName);
     }
   };
 
@@ -97,53 +108,29 @@ export const useChatbotViewModel = () => {
       const updated = prev.includes(lawLink)
         ? prev.filter((l) => l !== lawLink)
         : [...prev, lawLink];
-
-      console.log("Updated selected laws:", updated);
       return updated;
     });
   };
 
-  // ---------------- FOLDER ----------------
+  // ---------------- FOLDER & SHARE ----------------
   const addChatToFolder = (chatId) => {
     const folderName = prompt("Folder name?");
     const folder = folders.find(f => f.name === folderName);
+    if (!folder) return alert("Folder not found");
 
-    if (!folder) {
-      alert("Folder not found");
-      return;
-    }
-
-    setChats(prev =>
-      prev.map(c =>
-        c.id === chatId ? { ...c, folderId: folder.id } : c
-      )
-    );
-
-    setFolders(prev =>
-      prev.map(f =>
-        f.id === folder.id
-          ? { ...f, chatIds: [...f.chatIds, chatId] }
-          : f
-      )
-    );
-
+    setChats(prev => prev.map(c => (c.id === chatId ? { ...c, folderId: folder.id } : c)));
     setOpenChatMenuId(null);
   };
 
-  // ---------------- SHARE ----------------
   const handleShareChat = (chatId) => {
     const chat = chats.find(c => c.id === chatId);
     if (!chat) return;
-
-    const link = `${window.location.origin}/chat/${chatId}`;
-
-    navigator.clipboard.writeText(link);
-    alert("Link copied:\n" + link);
+    navigator.clipboard.writeText(`${window.location.origin}/chat/${chatId}`);
+    alert("Link copied!");
   };
 
   // ---------------- RETURN ----------------
   return {
-    // state
     chats,
     folders,
     messages,
@@ -157,8 +144,7 @@ export const useChatbotViewModel = () => {
     showFolders,
     showLawSource,
     laws,
-
-    // setters
+    authUser,
     setChats,
     setFolders,
     setMessages,
@@ -171,11 +157,11 @@ export const useChatbotViewModel = () => {
     setShowChatHistory,
     setShowFolders,
     setShowLawSource,
-
-    // actions
     handleLogout,
     handleNewChat,
     handleSend,
+    handleSuggestionClick,
+    handleLawClick, 
     toggleLaw,
     addChatToFolder,
     handleShareChat
