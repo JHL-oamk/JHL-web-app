@@ -100,7 +100,6 @@ export const useChatbotViewModel = (authViewModel) => {
     const textToSend = overrideInput || input;
     if (!textToSend.trim()) return;
 
-    // Create a new chat automatically if none exists
     let activeChatId = currentChatId;
     if (!activeChatId) {
       const chatId = `chat_${Date.now()}`;
@@ -126,13 +125,12 @@ export const useChatbotViewModel = (authViewModel) => {
     setMessages(loadingMessages);
 
     try {
-      const aiReply = await askClaude(textToSend, selectedLaws);
+      const aiReply = await askClaude(textToSend, selectedLaws); // selectedLaws
       const finalMessages = [...updatedMessages, { role: "assistant", content: aiReply }];
       setMessages(finalMessages);
 
       await updateChatMessagesApi(activeChatId, finalMessages);
 
-      // Auto-title from first user message
       const chat = chats.find(c => c.id === activeChatId);
       if (chat?.title === "New Chat") {
         const autoTitle = textToSend.slice(0, 40);
@@ -149,41 +147,33 @@ export const useChatbotViewModel = (authViewModel) => {
     }
   };
 
-  /**
-   * Action for clicking suggestion links/keywords in Welcome View
-   */
   const handleSuggestionClick = (text) => {
     handleSend(text);
   };
 
-  /**
-   * Action for clicking law names in AI responses
-   * Only toggles selection state.
-   */
   const handleLawClick = (lawName) => {
     if (!lawName) return;
     
     const normalizedInput = lawName.trim().toLowerCase();
     
-    // Improved matching: find law where official name is inside input or vice versa
     const lawMatch = laws.find(l => {
       const officialName = l.name.toLowerCase();
       return officialName.includes(normalizedInput) || normalizedInput.includes(officialName);
     });
 
     if (lawMatch) {
-      toggleLaw(lawMatch.link);
+      toggleLaw(lawMatch.id); // link → id
     } else {
       console.warn("No matching law found for selection:", lawName);
     }
   };
 
   // ---------------- LAW TOGGLE ----------------
-  const toggleLaw = (lawLink) => {
+  const toggleLaw = (lawId) => { // lawLink → lawId
     setSelectedLaws((prev) => {
-      const updated = prev.includes(lawLink)
-        ? prev.filter((l) => l !== lawLink)
-        : [...prev, lawLink];
+      const updated = prev.includes(lawId)
+        ? prev.filter((l) => l !== lawId)
+        : [...prev, lawId];
       return updated;
     });
   };

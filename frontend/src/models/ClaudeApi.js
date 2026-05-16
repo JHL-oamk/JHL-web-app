@@ -2,7 +2,6 @@ import { auth } from "../config/firebase";
 
 export async function askClaude(question, selectedLaws = []) {
   try {
-    // Always get a fresh token — localStorage token can expire after 1 hour
     const token = await auth.currentUser?.getIdToken();
 
     if (!token) {
@@ -17,12 +16,12 @@ export async function askClaude(question, selectedLaws = []) {
       },
       body: JSON.stringify({
         question,
-        selectedLaws: selectedLaws || [],
+        lawIds: selectedLaws, // changed to use firestores selectedLaws → lawIds
       }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({})); // ← won't crash on empty body
+      const errorData = await response.json().catch(() => ({}));
       return errorData.error || "AI request failed.";
     }
 
