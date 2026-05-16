@@ -2,7 +2,7 @@
  * Login Page - View Layer
  */
 
-import { useState, useEffect } from 'react'; // 👈 lisätty useEffect
+import { useState, useEffect } from 'react'; // useEffect
 import { useNavigate, Link } from 'react-router-dom';
 import { useLoginViewModel } from '../../viewModels/useLoginViewModel';
 import { LoadingSpinner } from '../components/LoadingSpinner';
