@@ -1,24 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
-  initialChats,
   initialFolders,
-  initialMessages,
   lawsList
 } from "../models/ChatbotModel";
 
 import { logoutApi } from "../models/authApi";
 import { askClaude } from "../models/ClaudeApi";
+import {
+  createChatApi,
+  getChatsApi,
+  getChatApi,
+  updateChatMessagesApi,
+  updateChatTitleApi,
+  deleteChatApi,
+} from "../models/chatApi";
 
 export const useChatbotViewModel = (authViewModel) => {
   const navigate = useNavigate();
 
   // ---------------- STATE ----------------
-  const [chats, setChats] = useState(initialChats);
+  const [chats, setChats] = useState([]);
   const [folders, setFolders] = useState(initialFolders);
-  const [messages, setMessages] = useState(initialMessages);
-  const [currentChatId, setCurrentChatId] = useState(1);
+  const [messages, setMessages] = useState([{ role: "assistant", content: "WELCOME_VIEW" }]);
+  const [currentChatId, setCurrentChatId] = useState(null);
   const [openChatMenuId, setOpenChatMenuId] = useState(null);
   const [openFolderId, setOpenFolderId] = useState(null);
   const [chatSearch, setChatSearch] = useState("");
@@ -31,6 +37,27 @@ export const useChatbotViewModel = (authViewModel) => {
   const laws = lawsList;
   const authUser = authViewModel?.user;
 
+  // ---------------- LOAD CHATS ON MOUNT ----------------
+  useEffect(() => {
+    if (!authUser?.uid) return;
+
+    const loadChats = async () => {
+      try {
+        const fetchedChats = await getChatsApi();
+        if (fetchedChats.length > 0) {
+          setChats(fetchedChats);
+          const latest = fetchedChats[0];
+          setCurrentChatId(latest.id);
+          setMessages(latest.messages || [{ role: "assistant", content: "WELCOME_VIEW" }]);
+        }
+      } catch (err) {
+        console.error("Failed to load chats:", err);
+      }
+    };
+
+    loadChats();
+  }, [authUser?.uid]);
+
   // ---------------- AUTH ----------------
   const handleLogout = async () => {
     try {
@@ -42,20 +69,54 @@ export const useChatbotViewModel = (authViewModel) => {
   };
 
   // ---------------- CHAT LOGIC ----------------
-  const handleNewChat = () => {
-    const newChat = { id: Date.now(), title: "New Chat", folderId: null };
+  const handleNewChat = async () => {
+    const chatId = `chat_${Date.now()}`;
+    const title = "New Chat";
+    const welcomeMessages = [{ role: "assistant", content: "WELCOME_VIEW" }];
+
+    const newChat = { id: chatId, title, folderId: null, messages: welcomeMessages };
     setChats(prev => [newChat, ...prev]);
-    setCurrentChatId(newChat.id);
-    // Setting this to include WELCOME_VIEW ensures the UI shows suggestions immediately
-    setMessages([{ role: "assistant", content: "WELCOME_VIEW" }]); 
+    setCurrentChatId(chatId);
+    setMessages(welcomeMessages);
+
+    try {
+      await createChatApi(chatId, title);
+    } catch (err) {
+      console.error("Failed to create chat:", err);
+    }
+  };
+
+  const handleSelectChat = async (chatId) => {
+    setCurrentChatId(chatId);
+    try {
+      const chat = await getChatApi(chatId);
+      setMessages(chat.messages || [{ role: "assistant", content: "WELCOME_VIEW" }]);
+    } catch (err) {
+      console.error("Failed to load chat:", err);
+    }
   };
 
   const handleSend = async (overrideInput) => {
     const textToSend = overrideInput || input;
     if (!textToSend.trim()) return;
 
+    // Create a new chat automatically if none exists
+    let activeChatId = currentChatId;
+    if (!activeChatId) {
+      const chatId = `chat_${Date.now()}`;
+      const welcomeMessages = [{ role: "assistant", content: "WELCOME_VIEW" }];
+      const newChat = { id: chatId, title: "New Chat", folderId: null, messages: welcomeMessages };
+      setChats(prev => [newChat, ...prev]);
+      setCurrentChatId(chatId);
+      activeChatId = chatId;
+      try {
+        await createChatApi(chatId, "New Chat");
+      } catch (err) {
+        console.error("Failed to create chat:", err);
+      }
+    }
+
     const userMessage = { role: "user", content: textToSend };
-    // We keep previous messages (like the WELCOME_VIEW if desired) or filtered list
     const updatedMessages = [...messages, userMessage];
 
     setMessages(updatedMessages);
@@ -66,10 +127,25 @@ export const useChatbotViewModel = (authViewModel) => {
 
     try {
       const aiReply = await askClaude(textToSend, selectedLaws);
-      setMessages([...updatedMessages, { role: "assistant", content: aiReply }]);
+      const finalMessages = [...updatedMessages, { role: "assistant", content: aiReply }];
+      setMessages(finalMessages);
+
+      await updateChatMessagesApi(activeChatId, finalMessages);
+
+      // Auto-title from first user message
+      const chat = chats.find(c => c.id === activeChatId);
+      if (chat?.title === "New Chat") {
+        const autoTitle = textToSend.slice(0, 40);
+        await updateChatTitleApi(activeChatId, autoTitle);
+        setChats(prev =>
+          prev.map(c => (c.id === activeChatId ? { ...c, title: autoTitle } : c))
+        );
+      }
     } catch (error) {
       console.error("AI Request Error:", error);
-      setMessages([...updatedMessages, { role: "assistant", content: "Error processing request." }]);
+      const errorMessages = [...updatedMessages, { role: "assistant", content: "Error processing request." }];
+      setMessages(errorMessages);
+      await updateChatMessagesApi(activeChatId, errorMessages).catch(() => {});
     }
   };
 
@@ -112,6 +188,28 @@ export const useChatbotViewModel = (authViewModel) => {
     });
   };
 
+  // ---------------- DELETE CHAT ----------------
+  const handleDeleteChat = async (chatId) => {
+    setChats(prev => prev.filter(c => c.id !== chatId));
+    setOpenChatMenuId(null);
+
+    if (currentChatId === chatId) {
+      const remaining = chats.filter(c => c.id !== chatId);
+      if (remaining.length > 0) {
+        handleSelectChat(remaining[0].id);
+      } else {
+        setCurrentChatId(null);
+        setMessages([{ role: "assistant", content: "WELCOME_VIEW" }]);
+      }
+    }
+
+    try {
+      await deleteChatApi(chatId);
+    } catch (err) {
+      console.error("Failed to delete chat:", err);
+    }
+  };
+
   // ---------------- FOLDER & SHARE ----------------
   const addChatToFolder = (chatId) => {
     const folderName = prompt("Folder name?");
@@ -148,7 +246,7 @@ export const useChatbotViewModel = (authViewModel) => {
     setChats,
     setFolders,
     setMessages,
-    setCurrentChatId,
+    setCurrentChatId: handleSelectChat,
     setOpenChatMenuId,
     setOpenFolderId,
     setChatSearch,
@@ -161,9 +259,10 @@ export const useChatbotViewModel = (authViewModel) => {
     handleNewChat,
     handleSend,
     handleSuggestionClick,
-    handleLawClick, 
+    handleLawClick,
     toggleLaw,
     addChatToFolder,
-    handleShareChat
+    handleShareChat,
+    handleDeleteChat,
   };
 };

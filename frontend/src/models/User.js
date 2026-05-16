@@ -3,10 +3,12 @@
  */
 
 export class User {
-  constructor(uid, email, username = null) {
+  constructor(uid, email, username = null, organisation = null, googleAccount = null) { 
     this.uid = uid;
     this.email = email;
     this.username = username;
+    this.organisation = organisation; //added org
+    this.googleAccount = googleAccount; //added googleacc
     this.createdAt = new Date();
   }
 
@@ -15,6 +17,8 @@ export class User {
       uid: this.uid,
       email: this.email,
       username: this.username,
+      organisation: this.organisation,
+      googleAccount: this.googleAccount,
       createdAt: this.createdAt,
     };
   }

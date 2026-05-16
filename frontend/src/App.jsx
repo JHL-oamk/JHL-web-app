@@ -12,9 +12,14 @@ import { ResetPassword } from './views/pages/ResetPassword';
 import { Chatbot } from './views/pages/Chatbot';
 import { LawSources } from './views/pages/LawSources';
 import { Admin } from './views/pages/Admin';
+import { LoadingSpinner } from './views/components/LoadingSpinner';
 
 function App() {
   const authViewModel = useAuthViewModel();
+
+  if (authViewModel.isSessionLoading) {
+    return <LoadingSpinner message="Loading..." />;
+  }
 
   return (
     <Router>

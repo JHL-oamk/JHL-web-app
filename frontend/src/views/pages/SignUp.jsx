@@ -2,7 +2,7 @@
  * Sign Up Page - View Layer
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSignUpViewModel } from '../../viewModels/useSignUpViewModel';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -17,6 +17,12 @@ export const SignUp = ({ authViewModel }) => {
   const navigate = useNavigate();
   const signUpForm = useSignUpViewModel();
   const [showSuccess, setShowSuccess] = useState(false);
+
+  useEffect(() => {
+    if (authViewModel.isAuthenticated) {
+      navigate('/settings');
+    }
+  }, [authViewModel.isAuthenticated]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,10 +41,6 @@ export const SignUp = ({ authViewModel }) => {
     if (result.success) {
       setShowSuccess(true);
       signUpForm.resetForm();
-      // Redirect to settings after 1.5 seconds
-      setTimeout(() => {
-        navigate('/settings');
-      }, 1500);
     }
   };
 

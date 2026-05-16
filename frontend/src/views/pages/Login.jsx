@@ -2,7 +2,7 @@
  * Login Page - View Layer
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // 👈 lisätty useEffect
 import { useNavigate, Link } from 'react-router-dom';
 import { useLoginViewModel } from '../../viewModels/useLoginViewModel';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -21,6 +21,12 @@ export const Login = ({ authViewModel }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
+  useEffect(() => {
+    if (authViewModel.isAuthenticated) {
+      navigate('/settings');
+    }
+  }, [authViewModel.isAuthenticated]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -34,10 +40,6 @@ export const Login = ({ authViewModel }) => {
     if (result.success) {
       setShowSuccess(true);
       loginForm.resetForm();
-
-      setTimeout(() => {
-        navigate('/settings');
-      }, 1500);
     }
   };
 
@@ -47,10 +49,6 @@ const handleGoogleLogin = async () => {
 
   if (result.success) {
     setShowSuccess(true);
-
-    setTimeout(() => {
-      navigate("/settings");
-    }, 1500);
   }
 };
 
