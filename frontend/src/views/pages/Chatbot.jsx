@@ -62,7 +62,7 @@ export const Chatbot = ({ authViewModel }) => {
                           Hello! I am your law assistant, what can I help you today?
                         </h2>
                         <p className="text-[12px] text-gray-500 mb-6">
-                          For quick start, select some topics below to start conversation...
+                          For quick start, select a topic below to start conversation...
                         </p>
                         
                         <div className="flex flex-col gap-3">
@@ -110,6 +110,42 @@ export const Chatbot = ({ authViewModel }) => {
                       <div className="prose prose-sm max-w-none">
                         <ReactMarkdown
                           components={{
+                            p: ({ node, ...props }) => {
+                              const childrenArray = React.Children.toArray(props.children);
+                              const hasPublishedDate = childrenArray.some(
+                                (child) =>
+                                  typeof child === 'string' && child.includes('Published Date')
+                              );
+
+                              if (hasPublishedDate) {
+                                return (
+                                  <p className="text-[13px] leading-relaxed text-black mb-4 last:mb-0 flex flex-wrap items-center gap-3">
+                                    {childrenArray.map((child, idx) => {
+                                      if (typeof child === 'string' && child.includes('Published Date')) {
+                                        return (
+                                          <span key={idx} style={{ color: colors.darkGrey }}>
+                                            {child}
+                                          </span>
+                                        );
+                                      }
+                                      return <span key={idx}>{child}</span>;
+                                    })}
+                                  </p>
+                                );
+                              }
+
+                              return (
+                                <p className="text-[13px] leading-relaxed text-black mb-4 last:mb-0">
+                                  {props.children}
+                                </p>
+                              );
+                            },
+                            hr: () => (
+                              <hr className="my-6 border-t border-gray-200" />
+                            ),
+                            strong: ({ node, ...props }) => (
+                              <strong className="font-semibold text-black">{props.children}</strong>
+                            ),
                             a: ({ node, ...props }) => {
                               const isInternal = props.href === "#";
                               
@@ -118,20 +154,18 @@ export const Chatbot = ({ authViewModel }) => {
                                 const fullLawName = React.Children.toArray(props.children).join("");
 
                                 return (
-                                  <span className="inline-flex items-start gap-2 my-2 group w-full">
+                                  <span className="inline-flex items-start gap-2 my-1 mr-4 group">
                                     <Reply size={14} className="text-gray-400 rotate-180 mt-1" />
-                                    <span className="flex flex-col">
-                                      <button
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          // Toggle source ONLY
-                                          vm.handleLawClick(fullLawName);
-                                        }}
-                                        className="text-[#3B82F6] font-bold hover:underline text-left inline-block"
-                                      >
-                                        {props.children}
-                                      </button>
-                                    </span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        // Toggle source ONLY
+                                        vm.handleLawClick(fullLawName);
+                                      }}
+                                      className="text-[#3B82F6] font-medium hover:underline text-left inline-block text-[13px]"
+                                    >
+                                      {props.children}
+                                    </button>
                                   </span>
                                 );
                               }
@@ -141,7 +175,7 @@ export const Chatbot = ({ authViewModel }) => {
                                   href={props.href} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="text-[#3B82F6] underline inline-block ml-6 mt-1 break-all hover:opacity-70 text-[11px]"
+                                  className="text-[#1E88E5] underline block ml-7 mt-1 max-w-[360px] truncate hover:opacity-70 text-[12px]"
                                 >
                                   {props.children}
                                 </a>
@@ -176,7 +210,7 @@ export const Chatbot = ({ authViewModel }) => {
 
           {/* INPUT AREA */}
           <div className="px-20 pb-8">
-            <div className="bg-white rounded-2xl p-5 mx-auto w-[50vw] shadow-lg border border-gray-100">
+            <div className="bg-white rounded-3xl p-6 mx-auto w-[50vw] shadow-lg border border-gray-100">
               <div className="text-[11px] mb-3 font-medium" style={{ color: colors.darkGrey }}>
                 Selected <span className="text-blue-600">{vm.selectedLaws.length || '0'}</span> sources
               </div>
@@ -186,7 +220,7 @@ export const Chatbot = ({ authViewModel }) => {
                   placeholder="Write your question here..."
                   value={vm.input}
                   onChange={(e) => vm.setInput(e.target.value)}
-                  className="flex-1 text-[12px] leading-relaxed min-h-[70px] outline-none resize-none"
+                  className="flex-1 text-[14px] leading-relaxed min-h-[70px] outline-none resize-none"
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && vm.handleSend()}
                 />
                 <button
