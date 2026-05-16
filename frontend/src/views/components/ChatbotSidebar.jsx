@@ -27,44 +27,15 @@ export const ChatbotSidebar = ({ vm }) => {
   const [editingFolderName, setEditingFolderName] = useState('');
   const [collapsedCategoryIds, setCollapsedCategoryIds] = useState([]);
 
-  const lawCategories = [
-    {
-      id: 'work',
-      name: 'Work',
-      sources: [
-        {
-          name: 'Finnish Employment Contracts Act',
-          link: 'https://www.finlex.fi/en/legislation/2001/55'
-        },
-        {
-          name: 'Working Hours Act',
-          link: 'https://www.finlex.fi/en/legislation/2019/872'
-        },
-        {
-          name: 'Occupational Safety and Health Act',
-          link: 'https://www.finlex.fi/en/legislation/2002/738'
-        }
-      ]
-    },
-    {
-      id: 'contracts',
-      name: 'Contracts',
-      sources: [
-        {
-          name: 'Contract Law Act',
-          link: 'https://www.finlex.fi/en/legislation/1929/228'
-        },
-        {
-          name: 'Act on the Publicity of Government Activities',
-          link: 'https://www.finlex.fi/fi/lainsaadanto/1999/621'
-        },
-        {
-          name: 'Consumer Protection Act',
-          link: 'https://www.finlex.fi/en/legislation/1978/38'
-        }
-      ]
-    }
-  ];
+  // Ryhmittele lait kategorioittain vm.laws:ista
+  const lawCategories = Object.values(
+    (vm.laws || []).reduce((acc, law) => {
+      const cat = law.category || 'Other';
+      if (!acc[cat]) acc[cat] = { id: cat, name: cat, sources: [] };
+      acc[cat].sources.push({ name: law.name, link: law.link, id: law.id });
+      return acc;
+    }, {})
+  );
 
   const handleClearDropdowns = () => {
     setOpenMenu(null);
@@ -91,16 +62,16 @@ export const ChatbotSidebar = ({ vm }) => {
   }, []);
 
   const handleCategoryToggle = (category) => {
-    const categoryLinks = category.sources.map((source) => source.link);
-    const isAllSelected = categoryLinks.every((link) => vm.selectedLaws.includes(link));
+    const categoryIds = category.sources.map((source) => source.id);
+    const isAllSelected = categoryIds.every((id) => vm.selectedLaws.includes(id));
     if (isAllSelected) {
-      vm.setSelectedLaws((prev) => prev.filter((link) => !categoryLinks.includes(link)));
+      vm.setSelectedLaws((prev) => prev.filter((id) => !categoryIds.includes(id)));
       return;
     }
     vm.setSelectedLaws((prev) => {
       const merged = [...prev];
-      categoryLinks.forEach((link) => {
-        if (!merged.includes(link)) merged.push(link);
+      categoryIds.forEach((id) => {
+        if (!merged.includes(id)) merged.push(id);
       });
       return merged;
     });
@@ -437,13 +408,13 @@ export const ChatbotSidebar = ({ vm }) => {
                       <button
                         key={color}
                         type="button"
-                          className="h-4 w-4 rounded-full"
+                        className="h-4 w-4 rounded-full"
                         style={{
                           backgroundColor: color,
-                            boxShadow:
-                              folder.color === color
-                                ? `0 0 0 2px ${colors.black}`
-                                : 'none'
+                          boxShadow:
+                            folder.color === color
+                              ? `0 0 0 2px ${colors.black}`
+                              : 'none'
                         }}
                         onClick={() => handleFolderColorChange(folder.id, color)}
                         aria-label="Select folder color"
@@ -601,9 +572,9 @@ export const ChatbotSidebar = ({ vm }) => {
         {vm.showLawSource && (
           <div className="mt-3 space-y-6">
             {lawCategories.map((category) => {
-              const categoryLinks = category.sources.map((source) => source.link);
-              const isCategorySelected = categoryLinks.every((link) =>
-                vm.selectedLaws.includes(link)
+              const categoryIds = category.sources.map((source) => source.id);
+              const isCategorySelected = categoryIds.every((id) =>
+                vm.selectedLaws.includes(id)
               );
               const isCollapsed = collapsedCategoryIds.includes(category.id);
 
@@ -632,11 +603,11 @@ export const ChatbotSidebar = ({ vm }) => {
                   {!isCollapsed && (
                     <div className="mt-2 space-y-2">
                       {category.sources.map((law) => (
-                        <div key={law.link} className="flex items-start gap-2">
+                        <div key={law.id} className="flex items-start gap-2">
                           <input
                             type="checkbox"
-                            checked={vm.selectedLaws.includes(law.link)}
-                            onChange={() => vm.toggleLaw(law.link)}
+                            checked={vm.selectedLaws.includes(law.id)}
+                            onChange={() => vm.toggleLaw(law.id)}
                             className="mt-1"
                             style={{ accentColor: colors.primary }}
                           />
@@ -644,22 +615,22 @@ export const ChatbotSidebar = ({ vm }) => {
                             type="button"
                             className="text-left"
                             onClick={() =>
-                              setOpenLawLink(openLawLink === law.link ? null : law.link)
+                              setOpenLawLink(openLawLink === law.id ? null : law.id)
                             }
                           >
                             <p className="text-[12px] text-black">{law.name}</p>
-                            {openLawLink === law.link && (
-                              <a
-                                href={law.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[11px] underline block max-w-[200px] truncate"
-                                style={{ color: colors.link }}
-                                title={law.link}
-                              >
-                                {law.link}
-                              </a>
-                            )}
+                            {openLawLink === law.link ? (
+                            <a
+                            href={law.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] underline block max-w-[200px] truncate"
+                            style={{ color: colors.link }}
+                            title={law.link}
+                          >
+                         {law.link}
+                         </a>
+                          ) : null}
                           </button>
                         </div>
                       ))}

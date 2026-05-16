@@ -55,6 +55,12 @@ const buildInitialCategories = () => ([
         type: 'link',
         title: 'Cooperation within Undertakings Act',
         url: 'https://www.finlex.fi/en/legislation/2021/1333'
+      },
+      {
+        id: 302,
+        type: 'link',
+        title: 'Act on the Publicity of Government Activities',
+        url: 'https://www.finlex.fi/en/legislation/1999/621'
       }
     ]
   }
