@@ -26,8 +26,11 @@ export const ChatbotSidebar = ({ vm }) => {
   const [editingFolderId, setEditingFolderId] = useState(null);
   const [editingFolderName, setEditingFolderName] = useState('');
   const [collapsedCategoryIds, setCollapsedCategoryIds] = useState([]);
+  const [lawLimitWarning, setLawLimitWarning] = useState(false);
 
-  // Ryhmittele lait kategorioittain vm.laws:ista
+  const MAX_LAWS = 3; //
+  const isAtLawLimit = (currentCount) => currentCount >= MAX_LAWS;
+
   const lawCategories = Object.values(
     (vm.laws || []).reduce((acc, law) => {
       const cat = law.category || 'Other';
@@ -62,20 +65,37 @@ export const ChatbotSidebar = ({ vm }) => {
   }, []);
 
   const handleCategoryToggle = (category) => {
-    const categoryIds = category.sources.map((source) => source.id);
-    const isAllSelected = categoryIds.every((id) => vm.selectedLaws.includes(id));
-    if (isAllSelected) {
-      vm.setSelectedLaws((prev) => prev.filter((id) => !categoryIds.includes(id)));
-      return;
+  const categoryIds = category.sources.map((source) => source.id);
+
+  const isAllSelected = categoryIds.every((id) =>
+    vm.selectedLaws.includes(id)
+  );
+
+  if (isAllSelected) {
+    vm.setSelectedLaws((prev) =>
+      prev.filter((id) => !categoryIds.includes(id))
+    );
+    return;
+  }
+
+  vm.setSelectedLaws((prev) => {
+    let merged = [...prev];
+
+    for (const id of categoryIds) {
+      if (merged.includes(id)) continue;
+
+      if (merged.length >= MAX_LAWS) {
+        setLawLimitWarning(true);
+        setTimeout(() => setLawLimitWarning(false), 2500);
+        break;
+      }
+
+      merged.push(id);
     }
-    vm.setSelectedLaws((prev) => {
-      const merged = [...prev];
-      categoryIds.forEach((id) => {
-        if (!merged.includes(id)) merged.push(id);
-      });
-      return merged;
-    });
-  };
+
+    return merged;
+  });
+};
 
   const toggleCategoryCollapse = (categoryId) => {
     setCollapsedCategoryIds((prev) =>
@@ -305,6 +325,11 @@ export const ChatbotSidebar = ({ vm }) => {
             {vm.showFolders ? '▾' : '▸'}
           </span>
         </div>
+                  {lawLimitWarning && (
+        <div className="mt-2 mb-2 rounded-md bg-red-100 text-red-700 text-[11px] px-3 py-2">
+          You can select maxium of {MAX_LAWS} laws.
+        </div>
+          )}
 
         {vm.showFolders && (
           <div className="mt-3 space-y-2">
@@ -607,7 +632,23 @@ export const ChatbotSidebar = ({ vm }) => {
                           <input
                             type="checkbox"
                             checked={vm.selectedLaws.includes(law.id)}
-                            onChange={() => vm.toggleLaw(law.id)}
+                            onChange={() => {
+                        vm.setSelectedLaws((prev) => {
+                        const isSelected = prev.includes(law.id);
+
+                          if (isSelected) {
+                          return prev.filter((id) => id !== law.id);
+                          }
+
+                          if (prev.length >= MAX_LAWS) {
+                          setLawLimitWarning(true);
+                            setTimeout(() => setLawLimitWarning(false), 2500);
+                        return prev;
+                            }
+
+                        return [...prev, law.id];
+                          });
+                          }}
                             className="mt-1"
                             style={{ accentColor: colors.primary }}
                           />
@@ -619,18 +660,18 @@ export const ChatbotSidebar = ({ vm }) => {
                             }
                           >
                             <p className="text-[12px] text-black">{law.name}</p>
-                            {openLawLink === law.link ? (
+                            {openLawLink === law.id && (
                             <a
-                            href={law.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[11px] underline block max-w-[200px] truncate"
-                            style={{ color: colors.link }}
-                            title={law.link}
-                          >
-                         {law.link}
-                         </a>
-                          ) : null}
+                              href={law.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] underline block max-w-[200px] truncate"
+                              style={{ color: colors.link }}
+                              title={law.link}
+                            >
+                            {law.link}
+                            </a>
+                            )}
                           </button>
                         </div>
                       ))}

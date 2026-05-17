@@ -6,62 +6,49 @@ import colors from '../../config/colors';
 const buildInitialCategories = () => ([
   {
     id: 1,
-    title: 'Work',
+    title: 'Employment',
     sources: [
-      {
-        id: 101,
-        type: 'link',
-        title: 'Finnish Work Law',
-        url: 'https://www.finlex.fi/en/legislation/2001/55'
-      },
-      {
-        id: 102,
-        type: 'link',
-        title: 'Working Hours Act',
-        url: 'https://www.finlex.fi/en/legislation/1996/605'
-      },
-      {
-        id: 103,
-        type: 'link',
-        title: 'Annual Holidays Act',
-        url: 'https://www.finlex.fi/en/legislation/2005/162'
-      },
+      { id: 101, type: 'link', title: 'Finnish Employment Contracts Act', url: 'https://www.finlex.fi/en/legislation/2001/55' },
+      { id: 102, type: 'link', title: 'Act on Equality between Women and Men', url: 'https://www.finlex.fi/en/legislation/1986/609' },
+      { id: 103, type: 'link', title: 'Act on Privacy in Working Life', url: 'https://www.finlex.fi/en/legislation/2004/759' },
+      { id: 104, type: 'link', title: 'Act on Health Care Professionals', url: 'https://www.finlex.fi/en/legislation/1994/559' },
+      { id: 105, type: 'link', title: 'Act on Social Welfare Professionals', url: 'https://www.finlex.fi/en/legislation/2015/817' },
     ]
   },
   {
     id: 2,
-    title: 'Study',
+    title: 'Working Hours & Leave',
     sources: [
-      {
-        id: 201,
-        type: 'link',
-        title: 'Occupational Safety and Health Act',
-        url: 'https://www.finlex.fi/en/legislation/2002/738'
-      },
-      {
-        id: 202,
-        type: 'link',
-        title: 'Non-Discrimination Act',
-        url: 'https://www.finlex.fi/en/legislation/2014/1325'
-      }
+      { id: 201, type: 'link', title: 'Working Hours Act', url: 'https://www.finlex.fi/en/legislation/2019/872' },
+      { id: 202, type: 'link', title: 'Annual Holidays Act', url: 'https://www.finlex.fi/en/legislation/2005/162' },
+      { id: 203, type: 'link', title: 'Study Leave Act', url: 'https://www.finlex.fi/en/legislation/1979/864' },
     ]
   },
   {
     id: 3,
-    title: 'Something else',
+    title: 'Safety & Equality',
     sources: [
-      {
-        id: 301,
-        type: 'link',
-        title: 'Cooperation within Undertakings Act',
-        url: 'https://www.finlex.fi/en/legislation/2021/1333'
-      },
-      {
-        id: 302,
-        type: 'link',
-        title: 'Act on the Publicity of Government Activities',
-        url: 'https://www.finlex.fi/en/legislation/1999/621'
-      }
+      { id: 301, type: 'link', title: 'Occupational Safety and Health Act', url: 'https://www.finlex.fi/en/legislation/2002/738' },
+      { id: 302, type: 'link', title: 'Non-Discrimination Act', url: 'https://www.finlex.fi/en/legislation/2014/1325' },
+      { id: 303, type: 'link', title: 'Act on Occupational Safety and Health Enforcement', url: 'https://www.finlex.fi/en/legislation/2006/44' },
+      { id: 304, type: 'link', title: 'Act on the Publicity of Government Activities', url: 'https://www.finlex.fi/en/legislation/1999/621' },
+    ]
+  },
+  {
+    id: 4,
+    title: 'Cooperation',
+    sources: [
+      { id: 401, type: 'link', title: 'Cooperation within Undertakings Act', url: 'https://www.finlex.fi/en/legislation/2021/1333' },
+      { id: 402, type: 'link', title: 'Act on Cooperation between Employer and Employees in Municipalities', url: 'https://www.finlex.fi/en/legislation/2007/449' },
+    ]
+  },
+  {
+    id: 5,
+    title: 'Collective Agreements',
+    sources: [
+      { id: 501, type: 'link', title: 'Municipal Health and Social Services Agreement (HYVTES)', url: 'https://www.kt.fi/sopimukset/hyvtes/2025-2028/kokoteksti' },
+      { id: 502, type: 'link', title: 'Social and Health Care Collective Agreement (Sote-sopimus)', url: 'https://www.kt.fi/sopimukset/sote/2025-2028/kokoteksti' },
+      { id: 503, type: 'link', title: 'General Municipal Collective Agreement (YTES)', url: 'https://www.kt.fi/sopimukset/ytes/2025-2028/kokoteksti' },
     ]
   }
 ]);
