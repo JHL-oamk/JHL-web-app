@@ -39,7 +39,7 @@ const updateChatFolder = async (uid, chatId, folderId) => {
   await getChatsCollection(uid).doc(chatId).update({ folderId });
 };
 
-// Tallentaa valitut lait: [{ name, link }]
+// Saves selected sources [{ name, link }]
 const updateChatContext = async (uid, chatId, context) => {
   await getChatsCollection(uid).doc(chatId).update({ context });
 };
