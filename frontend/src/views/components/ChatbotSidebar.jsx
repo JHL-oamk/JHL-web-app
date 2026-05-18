@@ -79,7 +79,7 @@ export const ChatbotSidebar = ({ vm }) => {
     );
   };
 
-  // ✅ Kutsuu ViewModelin handleCreateFolder → tallentuu Firestoreen
+  // ViewModel handleCreateFolder → Firestoreen
   const handleCreateFolder = () => {
     const name = newFolderName.trim();
     if (!name) return;
@@ -89,13 +89,11 @@ export const ChatbotSidebar = ({ vm }) => {
     setShowCreateFolder(false);
   };
 
-  // ✅ Kutsuu ViewModelin handleUpdateFolder → tallentuu Firestoreen
   const handleFolderColorChange = (folderId, color) => {
     vm.handleUpdateFolder(folderId, { color });
     setOpenFolderColorId(null);
   };
 
-  // ✅ Kutsuu ViewModelin handleRemoveFromFolder → tallentuu Firestoreen
   const handleRemoveFromFolder = (chatId) => {
     vm.handleRemoveFromFolder(chatId);
     setOpenMenu(null);
@@ -107,20 +105,17 @@ export const ChatbotSidebar = ({ vm }) => {
     setOpenMenu(null);
   };
 
-  // ✅ Kutsuu ViewModelin handleDeleteChat → tallentuu Firestoreen
   const handleDeleteChat = (chatId) => {
     vm.handleDeleteChat(chatId);
     setOpenMenu(null);
   };
 
-  // ✅ Kutsuu ViewModelin handleAddChatToFolder → tallentuu Firestoreen
   const handleAddToFolder = (chatId, folderId) => {
     vm.handleAddChatToFolder(chatId, folderId);
     setOpenAddToFolderChatId(null);
     setOpenMenu(null);
   };
 
-  // ✅ Kutsuu ViewModelin handleDeleteFolder → tallentuu Firestoreen
   const handleDeleteFolder = (folderId) => {
     vm.handleDeleteFolder(folderId);
     setOpenMenu(null);
@@ -133,7 +128,6 @@ export const ChatbotSidebar = ({ vm }) => {
     setOpenMenu(null);
   };
 
-  // ✅ Kutsuu ViewModelin handleUpdateFolder → tallentuu Firestoreen
   const handleSaveEditFolder = () => {
     const name = editingFolderName.trim();
     if (!name || editingFolderId === null) return;
@@ -208,8 +202,8 @@ export const ChatbotSidebar = ({ vm }) => {
                               openAddToFolderChatId === chat.id ? null : chat.id
                             )}>Add to folder</button>
                           {openAddToFolderChatId === chat.id && (
-                            <div className="absolute left-full top-0 ml-1 w-40 bg-white border border-gray-200 shadow-md"
-                              data-dropdown-interactive="true">
+                          <div className="absolute left-0 top-full mt-1 w-40 bg-white border border-gray-200 shadow-md z-20"
+                            data-dropdown-interactive="true">
                               {vm.folders.length === 0 && (
                                 <p className="px-3 py-2 text-[10px]" style={{ color: colors.darkGrey }}>No folders</p>
                               )}

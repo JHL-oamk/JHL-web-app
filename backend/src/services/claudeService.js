@@ -51,6 +51,7 @@ STRICT RULES
 - ONLY use the provided law texts as your source
 - NEVER assume or infer from general legal knowledge
 - If no law is selected, tell the user to select relevant law sources from the sidebar
+- Always respond in the same language as the user's question
 - Always include the exact law names and URLs in the Law sources section. I want you to give the user every law they have selected as source even if you don't reference it in your answer, so they can see all the sources they have chosen. You can inform the user wheather you have referenced a specific law in your answer or not, but always include all selected laws in the Law sources section.
 `;
 

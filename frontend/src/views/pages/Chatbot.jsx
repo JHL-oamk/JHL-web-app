@@ -36,10 +36,10 @@ export const Chatbot = ({ authViewModel }) => {
           {/* Header */}
           
           {/* 3. MESSAGE STREAM - Attach scrollRef here */}
-          <div 
-            ref={scrollRef} 
-            className="flex-1 overflow-y-auto px-5 pb-1 scroll-smooth"
-              >
+            <div 
+              ref={scrollRef} 
+              className="flex-1 overflow-y-auto px-5 pb-1 pt-6 scroll-smooth"
+                >
             <div className="space-y-10 w-full">
               {vm.messages.map((msg, index) => {
                 
@@ -206,8 +206,8 @@ export const Chatbot = ({ authViewModel }) => {
           </div>
 
           {/* INPUT AREA */}
-          <div className="px-20 pb-2 pt-2 mt-auto">
-            <div className="bg-white rounded-2xl p-3 mx-auto max-w-3xl w-full shadow-md border border-gray-100">
+          <div className="pb-2 pt-2 pr-4 mt-auto">
+            <div className="bg-white rounded-3xl p-3 mx-auto w-[50vw] shadow-md border border-gray-100">
               <div className="text-[11px] mb-3 font-medium" style={{ color: colors.darkGrey }}>
                 Selected <span className="text-blue-600">{vm.selectedLaws.length || '0'}</span> sources
               </div>
