@@ -8,6 +8,7 @@ const createChat = async (uid, chatId, title) => {
     title,
     folderId: null,
     messages: [{ role: 'assistant', content: 'WELCOME_VIEW' }],
+    context: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
@@ -15,7 +16,7 @@ const createChat = async (uid, chatId, title) => {
 
 const getChats = async (uid) => {
   const snap = await getChatsCollection(uid).orderBy('updatedAt', 'desc').get();
-  return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
 const getChat = async (uid, chatId) => {
@@ -38,16 +39,17 @@ const updateChatFolder = async (uid, chatId, folderId) => {
   await getChatsCollection(uid).doc(chatId).update({ folderId });
 };
 
+// Tallentaa valitut lait: [{ name, link }]
+const updateChatContext = async (uid, chatId, context) => {
+  await getChatsCollection(uid).doc(chatId).update({ context });
+};
+
 const deleteChat = async (uid, chatId) => {
   await getChatsCollection(uid).doc(chatId).delete();
 };
 
 module.exports = {
-  createChat,
-  getChats,
-  getChat,
-  updateChatMessages,
-  updateChatTitle,
-  updateChatFolder,
-  deleteChat,
+  createChat, getChats, getChat,
+  updateChatMessages, updateChatTitle,
+  updateChatFolder, updateChatContext, deleteChat,
 };

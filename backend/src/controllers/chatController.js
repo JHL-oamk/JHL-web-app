@@ -1,11 +1,7 @@
 const {
-  createChat,
-  getChats,
-  getChat,
-  updateChatMessages,
-  updateChatTitle,
-  updateChatFolder,
-  deleteChat,
+  createChat, getChats, getChat,
+  updateChatMessages, updateChatTitle,
+  updateChatFolder, updateChatContext, deleteChat,
 } = require('../services/chatService');
 
 const createChatController = async (req, res) => {
@@ -21,8 +17,7 @@ const createChatController = async (req, res) => {
 
 const getChatsController = async (req, res) => {
   try {
-    const uid = req.user.uid;
-    const chats = await getChats(uid);
+    const chats = await getChats(req.user.uid);
     res.status(200).json(chats);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -31,8 +26,7 @@ const getChatsController = async (req, res) => {
 
 const getChatController = async (req, res) => {
   try {
-    const uid = req.user.uid;
-    const chat = await getChat(uid, req.params.chatId);
+    const chat = await getChat(req.user.uid, req.params.chatId);
     if (!chat) return res.status(404).json({ error: 'Chat not found' });
     res.status(200).json(chat);
   } catch (error) {
@@ -42,9 +36,7 @@ const getChatController = async (req, res) => {
 
 const updateChatMessagesController = async (req, res) => {
   try {
-    const uid = req.user.uid;
-    const { messages } = req.body;
-    await updateChatMessages(uid, req.params.chatId, messages);
+    await updateChatMessages(req.user.uid, req.params.chatId, req.body.messages);
     res.status(200).json({ message: 'Messages updated' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -53,9 +45,7 @@ const updateChatMessagesController = async (req, res) => {
 
 const updateChatTitleController = async (req, res) => {
   try {
-    const uid = req.user.uid;
-    const { title } = req.body;
-    await updateChatTitle(uid, req.params.chatId, title);
+    await updateChatTitle(req.user.uid, req.params.chatId, req.body.title);
     res.status(200).json({ message: 'Title updated' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -64,10 +54,17 @@ const updateChatTitleController = async (req, res) => {
 
 const updateChatFolderController = async (req, res) => {
   try {
-    const uid = req.user.uid;
-    const { folderId } = req.body;
-    await updateChatFolder(uid, req.params.chatId, folderId);
+    await updateChatFolder(req.user.uid, req.params.chatId, req.body.folderId);
     res.status(200).json({ message: 'Folder updated' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const updateChatContextController = async (req, res) => {
+  try {
+    await updateChatContext(req.user.uid, req.params.chatId, req.body.context);
+    res.status(200).json({ message: 'Context updated' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -75,8 +72,7 @@ const updateChatFolderController = async (req, res) => {
 
 const deleteChatController = async (req, res) => {
   try {
-    const uid = req.user.uid;
-    await deleteChat(uid, req.params.chatId);
+    await deleteChat(req.user.uid, req.params.chatId);
     res.status(200).json({ message: 'Chat deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -84,11 +80,7 @@ const deleteChatController = async (req, res) => {
 };
 
 module.exports = {
-  createChatController,
-  getChatsController,
-  getChatController,
-  updateChatMessagesController,
-  updateChatTitleController,
-  updateChatFolderController,
-  deleteChatController,
+  createChatController, getChatsController, getChatController,
+  updateChatMessagesController, updateChatTitleController,
+  updateChatFolderController, updateChatContextController, deleteChatController,
 };
