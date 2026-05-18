@@ -26,7 +26,7 @@ export const Chatbot = ({ authViewModel }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-white pt-[50px]">
+    <div className="h-screen bg-white pt-[50px] overflow-hidden">
       <Navbar authViewModel={authViewModel} />
       
       <div className="flex h-[calc(100vh-50px)]">
@@ -34,15 +34,12 @@ export const Chatbot = ({ authViewModel }) => {
 
         <main className="flex flex-col flex-1" style={{ backgroundColor: colors.lightGrey }}>
           {/* Header */}
-          <div className="px-20 py-6 bg-transparent">
-            <h1 className="text-[14px] font-medium text-black">Legal Chatbot</h1>
-          </div>
-
+          
           {/* 3. MESSAGE STREAM - Attach scrollRef here */}
-          <div 
-            ref={scrollRef} 
-            className="flex-1 overflow-y-auto px-20 pb-6 scroll-smooth"
-          >
+            <div 
+              ref={scrollRef} 
+              className="flex-1 overflow-y-auto px-5 pb-1 pt-6 scroll-smooth"
+                >
             <div className="space-y-10 w-full">
               {vm.messages.map((msg, index) => {
                 
@@ -209,8 +206,8 @@ export const Chatbot = ({ authViewModel }) => {
           </div>
 
           {/* INPUT AREA */}
-          <div className="px-20 pb-8">
-            <div className="bg-white rounded-3xl p-6 mx-auto w-[50vw] shadow-lg border border-gray-100">
+          <div className="pb-2 pt-2 pr-4 mt-auto">
+            <div className="bg-white rounded-3xl p-3 mx-auto w-[50vw] shadow-md border border-gray-100">
               <div className="text-[11px] mb-3 font-medium" style={{ color: colors.darkGrey }}>
                 Selected <span className="text-blue-600">{vm.selectedLaws.length || '0'}</span> sources
               </div>
@@ -220,7 +217,7 @@ export const Chatbot = ({ authViewModel }) => {
                   placeholder="Write your question here..."
                   value={vm.input}
                   onChange={(e) => vm.setInput(e.target.value)}
-                  className="flex-1 text-[14px] leading-relaxed min-h-[70px] outline-none resize-none"
+                  className="flex-1 text-[14px] leading-relaxed min-h-[40px] outline-none resize-none"
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && vm.handleSend()}
                 />
                 <button

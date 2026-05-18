@@ -1,24 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-import {
-  initialChats,
-  initialFolders,
-  initialMessages,
-  lawsList
-} from "../models/ChatbotModel";
-
+import { lawsList } from "../models/ChatbotModel";
 import { logoutApi } from "../models/authApi";
 import { askClaude } from "../models/ClaudeApi";
+import {
+  createChatApi,
+  getChatsApi,
+  getChatApi,
+  updateChatMessagesApi,
+  updateChatTitleApi,
+  deleteChatApi,
+  updateChatFolderApi,
+} from "../models/chatApi";
+import {
+  createFolderApi,
+  getFoldersApi,
+  updateFolderApi,
+  deleteFolderApi,
+} from "../models/folderApi";
 
 export const useChatbotViewModel = (authViewModel) => {
   const navigate = useNavigate();
 
-  // ---------------- STATE ----------------
-  const [chats, setChats] = useState(initialChats);
-  const [folders, setFolders] = useState(initialFolders);
-  const [messages, setMessages] = useState(initialMessages);
-  const [currentChatId, setCurrentChatId] = useState(1);
+  const [chats, setChats] = useState([]);
+  const [folders, setFolders] = useState([]);
+  const [messages, setMessages] = useState([{ role: "assistant", content: "WELCOME_VIEW" }]);
+  const [currentChatId, setCurrentChatId] = useState(null);
   const [openChatMenuId, setOpenChatMenuId] = useState(null);
   const [openFolderId, setOpenFolderId] = useState(null);
   const [chatSearch, setChatSearch] = useState("");
@@ -31,139 +39,187 @@ export const useChatbotViewModel = (authViewModel) => {
   const laws = lawsList;
   const authUser = authViewModel?.user;
 
+  // ---------------- LOAD ON MOUNT ----------------
+  useEffect(() => {
+    if (!authUser?.uid) return;
+    const loadData = async () => {
+      try {
+        const [fetchedChats, fetchedFolders] = await Promise.all([
+          getChatsApi(),
+          getFoldersApi(),
+        ]);
+        if (fetchedFolders.length > 0) setFolders(fetchedFolders);
+        if (fetchedChats.length > 0) {
+          setChats(fetchedChats);
+          const latest = fetchedChats[0];
+          setCurrentChatId(latest.id);
+          setMessages(latest.messages || [{ role: "assistant", content: "WELCOME_VIEW" }]);
+        }
+      } catch (err) {
+        console.error("Failed to load data:", err);
+      }
+    };
+    loadData();
+  }, [authUser?.uid]);
+
   // ---------------- AUTH ----------------
   const handleLogout = async () => {
-    try {
-      await logoutApi();
-    } catch (err) {
-      console.error("Logout failed:", err);
-    }
+    try { await logoutApi(); } catch (err) { console.error("Logout failed:", err); }
     navigate("/login");
   };
 
-  // ---------------- CHAT LOGIC ----------------
-  const handleNewChat = () => {
-    const newChat = { id: Date.now(), title: "New Chat", folderId: null };
-    setChats(prev => [newChat, ...prev]);
-    setCurrentChatId(newChat.id);
-    // Setting this to include WELCOME_VIEW ensures the UI shows suggestions immediately
-    setMessages([{ role: "assistant", content: "WELCOME_VIEW" }]); 
+  // ---------------- CHAT ----------------
+  const handleNewChat = async () => {
+    const chatId = `chat_${Date.now()}`;
+    const welcomeMessages = [{ role: "assistant", content: "WELCOME_VIEW" }];
+    setChats(prev => [{ id: chatId, title: "New Chat", folderId: null, messages: welcomeMessages }, ...prev]);
+    setCurrentChatId(chatId);
+    setMessages(welcomeMessages);
+    try { await createChatApi(chatId, "New Chat"); }
+    catch (err) { console.error("Failed to create chat:", err); }
+  };
+
+  const handleSelectChat = async (chatId) => {
+    setCurrentChatId(chatId);
+    try {
+      const chat = await getChatApi(chatId);
+      setMessages(chat.messages || [{ role: "assistant", content: "WELCOME_VIEW" }]);
+    } catch (err) { console.error("Failed to load chat:", err); }
   };
 
   const handleSend = async (overrideInput) => {
     const textToSend = overrideInput || input;
     if (!textToSend.trim()) return;
 
-    const userMessage = { role: "user", content: textToSend };
-    // We keep previous messages (like the WELCOME_VIEW if desired) or filtered list
+    let activeChatId = currentChatId;
+    if (!activeChatId) {
+      const chatId = `chat_${Date.now()}`;
+      const welcomeMessages = [{ role: "assistant", content: "WELCOME_VIEW" }];
+      setChats(prev => [{ id: chatId, title: "New Chat", folderId: null, messages: welcomeMessages }, ...prev]);
+      setCurrentChatId(chatId);
+      activeChatId = chatId;
+      try { await createChatApi(chatId, "New Chat"); }
+      catch (err) { console.error("Failed to create chat:", err); }
+    }
+
+    // Konteksti tallennetaan per viesti
+    const contextLaws = laws
+      .filter(l => selectedLaws.includes(l.id))
+      .map(l => ({ name: l.name, link: l.link }));
+
+    const userMessage = {
+      role: "user",
+      content: textToSend,
+      context: contextLaws, // ← tallennetaan tähän viestiin
+    };
+
     const updatedMessages = [...messages, userMessage];
-
-    setMessages(updatedMessages);
+    setMessages([...updatedMessages, { role: "assistant", content: "Thinking..." }]);
     setInput("");
-
-    const loadingMessages = [...updatedMessages, { role: "assistant", content: "Thinking..." }];
-    setMessages(loadingMessages);
 
     try {
       const aiReply = await askClaude(textToSend, selectedLaws);
-      setMessages([...updatedMessages, { role: "assistant", content: aiReply }]);
+      const finalMessages = [...updatedMessages, { role: "assistant", content: aiReply }];
+      setMessages(finalMessages);
+
+      await updateChatMessagesApi(activeChatId, finalMessages);
+
+      // Auto-title
+      const chat = chats.find(c => c.id === activeChatId);
+      if (chat?.title === "New Chat") {
+        const autoTitle = textToSend.slice(0, 40);
+        await updateChatTitleApi(activeChatId, autoTitle);
+        setChats(prev => prev.map(c => c.id === activeChatId ? { ...c, title: autoTitle } : c));
+      }
     } catch (error) {
       console.error("AI Request Error:", error);
-      setMessages([...updatedMessages, { role: "assistant", content: "Error processing request." }]);
+      const errorMessages = [...updatedMessages, { role: "assistant", content: "Error processing request." }];
+      setMessages(errorMessages);
+      await updateChatMessagesApi(activeChatId, errorMessages).catch(() => {});
     }
   };
 
-  /**
-   * Action for clicking suggestion links/keywords in Welcome View
-   */
-  const handleSuggestionClick = (text) => {
-    handleSend(text);
-  };
+  const handleSuggestionClick = (text) => handleSend(text);
 
-  /**
-   * Action for clicking law names in AI responses
-   * Only toggles selection state.
-   */
   const handleLawClick = (lawName) => {
     if (!lawName) return;
-    
-    const normalizedInput = lawName.trim().toLowerCase();
-    
-    // Improved matching: find law where official name is inside input or vice versa
-    const lawMatch = laws.find(l => {
-      const officialName = l.name.toLowerCase();
-      return officialName.includes(normalizedInput) || normalizedInput.includes(officialName);
+    const normalized = lawName.trim().toLowerCase();
+    const match = laws.find(l => {
+      const name = l.name.toLowerCase();
+      return name.includes(normalized) || normalized.includes(name);
     });
+    if (match) toggleLaw(match.id);
+    else console.warn("No matching law found:", lawName);
+  };
 
-    if (lawMatch) {
-      toggleLaw(lawMatch.link);
-    } else {
-      console.warn("No matching law found for selection:", lawName);
+  const toggleLaw = (lawId) => {
+    setSelectedLaws(prev =>
+      prev.includes(lawId) ? prev.filter(l => l !== lawId) : [...prev, lawId]
+    );
+  };
+
+  // ---------------- DELETE CHAT ----------------
+  const handleDeleteChat = async (chatId) => {
+    const remaining = chats.filter(c => c.id !== chatId);
+    setChats(remaining);
+    if (currentChatId === chatId) {
+      if (remaining.length > 0) handleSelectChat(remaining[0].id);
+      else { setCurrentChatId(null); setMessages([{ role: "assistant", content: "WELCOME_VIEW" }]); }
     }
+    try { await deleteChatApi(chatId); }
+    catch (err) { console.error("Failed to delete chat:", err); }
   };
 
-  // ---------------- LAW TOGGLE ----------------
-  const toggleLaw = (lawLink) => {
-    setSelectedLaws((prev) => {
-      const updated = prev.includes(lawLink)
-        ? prev.filter((l) => l !== lawLink)
-        : [...prev, lawLink];
-      return updated;
-    });
+  // ---------------- FOLDER ACTIONS ----------------
+  const handleCreateFolder = async (name, color) => {
+    const folderId = `folder_${Date.now()}`;
+    setFolders(prev => [...prev, { id: folderId, name, color, chatIds: [] }]);
+    try { await createFolderApi(folderId, name, color); }
+    catch (err) { console.error("Failed to create folder:", err); }
   };
 
-  // ---------------- FOLDER & SHARE ----------------
-  const addChatToFolder = (chatId) => {
-    const folderName = prompt("Folder name?");
-    const folder = folders.find(f => f.name === folderName);
-    if (!folder) return alert("Folder not found");
+  const handleUpdateFolder = async (folderId, data) => {
+    setFolders(prev => prev.map(f => f.id === folderId ? { ...f, ...data } : f));
+    try { await updateFolderApi(folderId, data); }
+    catch (err) { console.error("Failed to update folder:", err); }
+  };
 
-    setChats(prev => prev.map(c => (c.id === chatId ? { ...c, folderId: folder.id } : c)));
-    setOpenChatMenuId(null);
+  const handleDeleteFolder = async (folderId) => {
+    const affected = chats.filter(c => c.folderId === folderId);
+    setFolders(prev => prev.filter(f => f.id !== folderId));
+    setChats(prev => prev.map(c => c.folderId === folderId ? { ...c, folderId: null } : c));
+    try {
+      await deleteFolderApi(folderId);
+      await Promise.all(affected.map(c => updateChatFolderApi(c.id, null)));
+    } catch (err) { console.error("Failed to delete folder:", err); }
+  };
+
+  const handleAddChatToFolder = async (chatId, folderId) => {
+    setChats(prev => prev.map(c => c.id === chatId ? { ...c, folderId } : c));
+    try { await updateChatFolderApi(chatId, folderId); }
+    catch (err) { console.error("Failed to update chat folder:", err); }
+  };
+
+  const handleRemoveFromFolder = async (chatId) => {
+    await handleAddChatToFolder(chatId, null);
   };
 
   const handleShareChat = (chatId) => {
-    const chat = chats.find(c => c.id === chatId);
-    if (!chat) return;
     navigator.clipboard.writeText(`${window.location.origin}/chat/${chatId}`);
     alert("Link copied!");
   };
 
-  // ---------------- RETURN ----------------
   return {
-    chats,
-    folders,
-    messages,
-    currentChatId,
-    openChatMenuId,
-    openFolderId,
-    chatSearch,
-    input,
-    selectedLaws,
-    showChatHistory,
-    showFolders,
-    showLawSource,
-    laws,
-    authUser,
-    setChats,
-    setFolders,
-    setMessages,
-    setCurrentChatId,
-    setOpenChatMenuId,
-    setOpenFolderId,
-    setChatSearch,
-    setInput,
-    setSelectedLaws,
-    setShowChatHistory,
-    setShowFolders,
-    setShowLawSource,
-    handleLogout,
-    handleNewChat,
-    handleSend,
-    handleSuggestionClick,
-    handleLawClick, 
-    toggleLaw,
-    addChatToFolder,
-    handleShareChat
+    chats, folders, messages, currentChatId, openChatMenuId, openFolderId,
+    chatSearch, input, selectedLaws, showChatHistory, showFolders, showLawSource,
+    laws, authUser,
+    setChats, setFolders, setMessages,
+    setCurrentChatId: handleSelectChat,
+    setOpenChatMenuId, setOpenFolderId, setChatSearch, setInput, setSelectedLaws,
+    setShowChatHistory, setShowFolders, setShowLawSource,
+    handleLogout, handleNewChat, handleSend, handleSuggestionClick,
+    handleLawClick, toggleLaw, handleDeleteChat, handleShareChat,
+    handleCreateFolder, handleUpdateFolder, handleDeleteFolder,
+    handleAddChatToFolder, handleRemoveFromFolder,
   };
 };

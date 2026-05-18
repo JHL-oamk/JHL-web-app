@@ -56,7 +56,9 @@ export const loginApi = async (email, password) => {
     const user = new User(
       firebaseUser.uid,
       firebaseUser.email,
-      firestoreUser?.username || firebaseUser.displayName || "User"
+      firestoreUser?.username || firebaseUser.displayName || "User",
+      firestoreUser?.organisation || null, 
+      null
     );
 
     localStorage.setItem("authToken", token);
@@ -93,7 +95,13 @@ export const registerApi = async (email, username, password, organisation) => {
       })
     });
 
-    const user = new User(firebaseUser.uid, firebaseUser.email, username);
+    const user = new User(
+      firebaseUser.uid,
+      firebaseUser.email,
+      username,
+      organisation?.trim() ? organisation.trim() : null, 
+      null
+    );
     localStorage.setItem("authToken", token);
 
     return new AuthResponse(true, "Registration successful", user, token);
@@ -160,7 +168,9 @@ export const loginWithGoogleApi = async () => {
     const user = new User(
       firebaseUser.uid,
       firebaseUser.email,
-      firestoreUser?.username || firebaseUser.displayName || "User"
+      firestoreUser?.username || firebaseUser.displayName || "User",
+      firestoreUser?.organisation || null,
+      firebaseUser.email 
     );
 
     localStorage.setItem("authToken", token);
