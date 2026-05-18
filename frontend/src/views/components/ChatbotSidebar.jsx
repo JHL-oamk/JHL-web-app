@@ -145,7 +145,7 @@ export const ChatbotSidebar = ({ vm }) => {
   return (
     <aside
       ref={sidebarRef}
-      className="w-[280px] bg-white border-r flex flex-col h-screen overflow-y-auto"
+      className="w-[280px] bg-white border-r flex flex-col h-screen overflow-y-auto pb-10"
       style={{ borderColor: colors.grey }}
     >
       {/* New chat */}
