@@ -3,6 +3,10 @@ import { Navbar } from '../components/Navbar';
 import { Button } from '../components/Button';
 import colors from '../../config/colors';
 
+// 🌟 FIXED: Corrected named casing to import the actual 'PdfViewModel' class matching your service layer
+import { PdfViewModel } from '../../viewModels/PdfViewModel';
+
+// Helper function to establish the baseline mock data structured by operational categories
 const buildInitialCategories = () => ([
   {
     id: 1,
@@ -39,7 +43,7 @@ const buildInitialCategories = () => ([
     title: 'Cooperation',
     sources: [
       { id: 401, type: 'link', title: 'Cooperation within Undertakings Act', url: 'https://www.finlex.fi/en/legislation/2021/1333' },
-      { id: 402, type: 'link', title: 'Act on Cooperation between Employer and Employees in Municipalities', url: 'https://www.finlex.fi/en/legislation/2007/449' },
+      { id: 402, type: 'link', title: 'Act on Cooperation between Employer and Employees in Municipalities', url: 'https://www.kt.fi/sopimukset/hyvtes/2025-2028/kokoteksti' },
     ]
   },
   {
@@ -54,16 +58,28 @@ const buildInitialCategories = () => ([
 ]);
 
 export const LawSources = ({ authViewModel }) => {
+  // 🌟 FIXED: Instantiated properly inside the component scope without causing double-declaration errors
+  const pdfViewModel = new PdfViewModel();
+
+  // Core state declarations for managing active list data and dynamic interface modes
   const [categories, setCategories] = useState(buildInitialCategories);
   const [isEditMode, setIsEditMode] = useState(false);
   const [search, setSearch] = useState('');
+  
+  // UI toggle states for rendering conditional panels and staging structural changes
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryTitle, setNewCategoryTitle] = useState('');
   const [sourceDrafts, setSourceDrafts] = useState({});
   const [collapsedCategories, setCollapsedCategories] = useState({});
+  
+  // State tracking the upload state to provide visual indicators for the user
+  const [isFileUploading, setIsFileUploading] = useState(false);
+  
+  // Ref hooks targeting physical DOM boundaries for resolving overlay interaction scopes
   const addCategoryRef = useRef(null);
   const sourceDraftRefs = useRef({});
 
+  // Memoized evaluation to handle client-side multi-layer collection filtering based on query matches
   const filteredCategories = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return categories;
@@ -83,17 +99,20 @@ export const LawSources = ({ authViewModel }) => {
       .filter((category) => category.sources.length > 0);
   }, [categories, search]);
 
+  // Toggles the interface between read-only navigation and active dataset mutation
   const handleToggleEdit = () => {
     setIsEditMode((prev) => !prev);
     setShowAddCategory(false);
     setSourceDrafts({});
   };
 
+  // Opens or closes the staging panel for appending new data categories
   const handleAddCategoryToggle = () => {
     setShowAddCategory((prev) => !prev);
     setNewCategoryTitle('');
   };
 
+  // Validates text input and commits a newly structured category object to localized state
   const handleAddCategory = () => {
     const title = newCategoryTitle.trim();
     if (!title) return;
@@ -109,6 +128,7 @@ export const LawSources = ({ authViewModel }) => {
     setNewCategoryTitle('');
   };
 
+  // Inverts the visibility state of source elements assigned to a unique category boundary
   const handleToggleCategory = (categoryId) => {
     setCollapsedCategories((prev) => ({
       ...prev,
@@ -116,10 +136,12 @@ export const LawSources = ({ authViewModel }) => {
     }));
   };
 
+  // Removes a specified category node completely from local configuration arrays
   const handleDeleteCategory = (categoryId) => {
     setCategories((prev) => prev.filter((category) => category.id !== categoryId));
   };
 
+  // Filters out a target source record mapping under a designated parent category node
   const handleDeleteSource = (categoryId, sourceId) => {
     setCategories((prev) => prev.map((category) => {
       if (category.id !== categoryId) return category;
@@ -130,6 +152,7 @@ export const LawSources = ({ authViewModel }) => {
     }));
   };
 
+  // Instantiates an empty structural staging record for managing custom field inputs
   const handleOpenSourceDraft = (categoryId) => {
     setSourceDrafts((prev) => ({
       ...prev,
@@ -143,6 +166,7 @@ export const LawSources = ({ authViewModel }) => {
     }));
   };
 
+  // Evaluates whether a staged inline record contains pending parameters or remains blank
   const isSourceDraftEmpty = (draft) => {
     if (!draft) return true;
     const title = draft.title?.trim();
@@ -150,6 +174,7 @@ export const LawSources = ({ authViewModel }) => {
     return !title && !url && !draft.fileName && !draft.fileUrl;
   };
 
+  // Global listener intercepting background canvas clicks to close inactive input models safely
   useEffect(() => {
     const handleOutsideClick = (event) => {
       if (showAddCategory && !newCategoryTitle.trim()) {
@@ -183,6 +208,7 @@ export const LawSources = ({ authViewModel }) => {
     };
   }, [showAddCategory, newCategoryTitle]);
 
+  // Synchronizes specific character strings from active keystrokes straight into target configuration models
   const handleSourceDraftChange = (categoryId, field, value) => {
     setSourceDrafts((prev) => ({
       ...prev,
@@ -196,20 +222,36 @@ export const LawSources = ({ authViewModel }) => {
     }));
   };
 
-  const handleFileSelect = (categoryId, file) => {
+  // Modified to execute a real async upload to Supabase Storage via ViewModel
+  const handleFileSelect = async (categoryId, file) => {
     if (!file) return;
-    const fileUrl = URL.createObjectURL(file);
-    setSourceDrafts((prev) => ({
-      ...prev,
-      [categoryId]: {
-        ...prev[categoryId],
-        url: '',
-        fileName: file.name,
-        fileUrl
+
+    try {
+      setIsFileUploading(true); // Turn loading UI indicators ON
+      
+      // Request file upload sequence through ViewModel layer
+      const uploadedFile = await pdfViewModel.upload(file);
+      
+      if (uploadedFile) {
+        // Map the permanent Supabase public URL into your draft state object
+        setSourceDrafts((prev) => ({
+          ...prev,
+          [categoryId]: {
+            ...prev[categoryId],
+            url: '',
+            fileName: uploadedFile.fileName,
+            fileUrl: uploadedFile.url // This is now the live https:// link from Supabase
+          }
+        }));
       }
-    }));
+    } catch (error) {
+      alert(`File upload failed: ${error.message}`);
+    } finally {
+      setIsFileUploading(false); // Turn loading UI indicators OFF
+    }
   };
 
+  // Flushes structural attachments out of current edit blocks and resets document configuration hooks
   const handleClearFile = (categoryId) => {
     setSourceDrafts((prev) => ({
       ...prev,
@@ -221,6 +263,7 @@ export const LawSources = ({ authViewModel }) => {
     }));
   };
 
+  // Compiles metadata from active drafts and commits the verified source block structure down to categories state
   const handleAddSource = (categoryId) => {
     const draft = sourceDrafts[categoryId];
     if (!draft) return;
@@ -260,6 +303,7 @@ export const LawSources = ({ authViewModel }) => {
     }));
   };
 
+  // Renders independent individual source records using custom global workspace layout components
   const renderSource = (categoryId, source) => (
     <div key={source.id} className="flex items-start justify-between gap-6 py-2">
       <div>
@@ -435,15 +479,16 @@ export const LawSources = ({ authViewModel }) => {
                               <input
                                 value={draft.title}
                                 onChange={(event) => handleSourceDraftChange(category.id, 'title', event.target.value)}
-                                placeholder="Source title"
+                                placeholder="Source title (Leave blank to use file name)"
                                 className="flex-1 rounded-full px-4 py-2 text-xs outline-none"
                                 style={{ backgroundColor: colors.white, color: colors.black }}
                               />
                               <button
                                 type="button"
+                                disabled={isFileUploading}
                                 onClick={() => handleAddSource(category.id)}
-                                className="text-xs rounded-full px-4 py-2"
-                                style={{ backgroundColor: colors.darkGrey, color: colors.white }}
+                                className="text-xs rounded-full px-4 py-2 transition-opacity"
+                                style={{ backgroundColor: colors.darkGrey, color: colors.white, opacity: isFileUploading ? 0.5 : 1 }}
                               >
                                 + Add
                               </button>
@@ -464,6 +509,7 @@ export const LawSources = ({ authViewModel }) => {
                                   </a>
                                   <button
                                     type="button"
+                                    disabled={isFileUploading}
                                     onClick={() => handleClearFile(category.id)}
                                     className="text-xs"
                                     style={{ color: colors.darkGrey }}
@@ -475,6 +521,7 @@ export const LawSources = ({ authViewModel }) => {
                                 <>
                                   <input
                                     value={draft.url}
+                                    disabled={isFileUploading}
                                     onChange={(event) => handleSourceDraftChange(category.id, 'url', event.target.value)}
                                     placeholder="Paste source link here..."
                                     className="flex-1 rounded-full px-4 py-2 text-xs outline-none"
@@ -482,12 +529,14 @@ export const LawSources = ({ authViewModel }) => {
                                   />
                                   {!hasLink && (
                                     <label
-                                      className="text-xs rounded-full px-6 py-2 cursor-pointer"
-                                      style={{ backgroundColor: colors.grey, color: colors.darkGrey }}
+                                      className="text-xs rounded-full px-6 py-2 cursor-pointer transition-opacity"
+                                      style={{ backgroundColor: colors.grey, color: colors.darkGrey, opacity: isFileUploading ? 0.5 : 1 }}
                                     >
-                                      Upload file
+                                      {isFileUploading ? 'Uploading...' : 'Upload file'}
                                       <input
                                         type="file"
+                                        accept="application/pdf"
+                                        disabled={isFileUploading}
                                         className="hidden"
                                         onChange={(event) => handleFileSelect(category.id, event.target.files?.[0])}
                                       />
