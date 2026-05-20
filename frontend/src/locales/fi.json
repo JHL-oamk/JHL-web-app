@@ -1,0 +1,120 @@
+{
+  "nav": {
+    "chatbot": "Chatbot",
+    "law_sources": "Lakitieto",
+    "admin": "Hallinta",
+    "settings": "Asetukset",
+    "user_profile": "Käyttäjäprofiili",
+    "logout": "Kirjaudu ulos",
+    "login": "Kirjaudu",
+    "signup": "Rekisteröidy"
+  },
+  "login": {
+    "title": "KIRJAUDU",
+    "success": "✓ Kirjautuminen onnistui! Ohjataan...",
+    "email": "Sähköposti",
+    "email_placeholder": "sinä@esimerkki.fi",
+    "password": "Salasana",
+    "password_placeholder": "Syötä salasanasi",
+    "forgot_password": "Unohditko salasanasi?",
+    "remember_me": "Muista minut",
+    "submit": "Kirjaudu",
+    "no_account": "Eikö sinulla ole tiliä?",
+    "signup_link": "Rekisteröidy!",
+    "or": "tai"
+  },
+  "signup": {
+    "title": "REKISTERÖIDY",
+    "success": "✓ Tili luotu onnistuneesti! Ohjataan...",
+    "email": "Sähköposti",
+    "email_placeholder": "sinä@esimerkki.fi",
+    "username": "Käyttäjänimi",
+    "username_placeholder": "Valitse käyttäjänimi",
+    "password": "Salasana",
+    "password_placeholder": "Vähintään 8 merkkiä",
+    "confirm_password": "Vahvista salasana",
+    "confirm_password_placeholder": "Vahvista salasanasi",
+    "organisation": "Organisaatio (valinnainen)",
+    "organisation_placeholder": "Organisaatiosi (valinnainen)",
+    "submit": "Rekisteröidy",
+    "have_account": "Onko sinulla jo tili?",
+    "login_link": "Kirjaudu!"
+  },
+  "reset_password": {
+    "title": "NOLLAA SALASANA",
+    "success": "✓ Lähetimme salasanan palautuslinkin, jos sähköposti on olemassa.",
+    "description": "*Nollaa salasana sähköpostitse. Lähetämme linkin sähköpostiin, jolla rekisteröidyit. Syötä sähköpostiosoitteesi alla saadaksesi linkin.",
+    "email": "Sähköposti",
+    "login_link": "Kirjaudu?",
+    "submit": "Lähetä palautuslinkki",
+    "wait": "Odota {{seconds}}s",
+    "cooldown": "Voit pyytää uuden sähköpostin {{seconds}} sekunnin kuluttua"
+  },
+  "settings": {
+    "title": "Asetukset",
+    "user_profile": "Käyttäjäprofiili",
+    "username": "Käyttäjänimi:",
+    "email": "Sähköposti:",
+    "google_account": "Yhdistetty Google-tili:",
+    "password": "Salasana:",
+    "reset_password": "Nollaa salasana sähköpostitse",
+    "organisation": "Organisaatio:",
+    "join_organisation": "Liity organisaatioon",
+    "logout": "Kirjaudu ulos",
+    "delete_account": "POISTA TILI",
+    "delete_confirm": "Haluatko varmasti poistaa tilisi? Tätä toimintoa ei voi peruuttaa."
+  },
+  "admin": {
+    "title": "Hallinta",
+    "coming_soon": "Sisältö tulossa pian."
+  },
+  "law_sources": {
+    "title": "Lakitietoluettelo",
+    "search_placeholder": "Hae avainsanoilla...",
+    "edit": "Muokkaa",
+    "save": "Tallenna",
+    "add_category": "Lisää uusi kategoria",
+    "category_name_placeholder": "Kategorian nimi",
+    "add": "+ Lisää",
+    "add_source": "Lisää uusi lähde",
+    "source_title": "Otsikko:",
+    "source_title_placeholder": "Lähteen otsikko",
+    "source_url": "Lähde:",
+    "source_url_placeholder": "Liitä lähteen linkki tähän...",
+    "upload_file": "Lataa tiedosto"
+  },
+  "chatbot": {
+    "title": "Lakiavustaja",
+    "welcome_title": "Hei! Olen lakiavustajasi, miten voin auttaa sinua tänään?",
+    "welcome_subtitle": "Aloita nopeasti valitsemalla aihe alta...",
+    "suggestions": [
+      "Kerro jotain Suomen työlainsäädännöstä...",
+      "Mitä minun pitäisi tehdä, jos minulla on lakiongelma työpaikalla?..."
+    ],
+    "selected_sources": "Valittu",
+    "sources_label": "lähdettä",
+    "placeholder": "Kirjoita kysymyksesi tähän...",
+    "send": "Lähetä",
+    "disclaimer": "*Tekoäly voi tehdä virheitä, tarkista aina lakitiedot itse."
+  },
+  "sidebar": {
+    "new_chat": "Uusi keskustelu",
+    "latest_conversations": "Viimeisimmät keskustelut",
+    "conversation_folders": "Keskustelukansiot",
+    "select_law_sources": "Valitse lakilähteet",
+    "search_placeholder": "Etsi keskusteluja...",
+    "create_folder": "Luo uusi kansio",
+    "folder_name_placeholder": "Kansion nimi",
+    "create": "Luo",
+    "cancel": "Peruuta",
+    "save": "Tallenna",
+    "share": "Jaa",
+    "add_to_folder": "Lisää kansioon",
+    "remove_from_folder": "Poista kansiosta",
+    "delete": "Poista",
+    "no_chats": "Ei keskusteluja",
+    "no_folders": "Ei kansioita",
+    "law_limit_warning": "Voit valita enintään {{max}} lakia.",
+    "edit": "Muokkaa"
+  }
+}

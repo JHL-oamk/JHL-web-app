@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 import colors from '../../config/colors';
 
@@ -9,12 +10,20 @@ export const Navbar = ({ authViewModel }) => {
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const isAuthenticated = authViewModel?.isAuthenticated;
+  const { t, i18n } = useTranslation();
+
+  const toggleLanguage = (lang) => {
+    i18n.changeLanguage(lang);
+    console.log(i18n.language);
+    localStorage.setItem('language', lang);
+    setShowLangDropdown(false);
+  };
 
   const navLinks = [
-    { label: 'Chatbot', path: '/chatbot' },
-    { label: 'Law Sources', path: '/law-sources' },
-    { label: 'Admin', path: '/admin' },
-    { label: 'Settings', path: '/settings' },
+    { label: t('nav.chatbot'), path: '/chatbot' },
+    { label: t('nav.law_sources'), path: '/law-sources' },
+    { label: t('nav.admin'), path: '/admin' },
+    { label: t('nav.settings'), path: '/settings' },
   ];
 
   return (
@@ -52,7 +61,7 @@ export const Navbar = ({ authViewModel }) => {
               className="flex items-center gap-1 cursor-pointer text-black text-[12px] font-medium select-none"
               onClick={() => setShowLangDropdown(!showLangDropdown)}
             >
-              ENG/FIN
+              {i18n.language === 'fi' ? 'FIN' : 'ENG'} / {i18n.language === 'fi' ? 'ENG' : 'FIN'}
               <svg
                 width="12"
                 height="12"
@@ -71,8 +80,18 @@ export const Navbar = ({ authViewModel }) => {
             {showLangDropdown && (
               <div className="absolute right-0 mt-2 w-24 bg-white border border-gray-200 shadow-md rounded-md z-50 overflow-hidden">
                 <ul className="py-1">
-                  <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-[12px] font-medium text-center">English</li>
-                  <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-[12px] font-medium text-center">Suomi</li>
+                  <li
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-[12px] font-medium text-center"
+                    onClick={() => toggleLanguage('en')}
+                  >
+                    English
+                  </li>
+                  <li
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-[12px] font-medium text-center"
+                    onClick={() => toggleLanguage('fi')}
+                  >
+                    Suomi
+                  </li>
                 </ul>
               </div>
             )}
@@ -109,7 +128,7 @@ export const Navbar = ({ authViewModel }) => {
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-[12px] font-medium"
                       onClick={() => navigate('/settings')}
                     >
-                      User Profile
+                      {t('nav.user_profile')}
                     </li>
                     <li
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-[12px] font-medium text-red-600"
@@ -118,7 +137,7 @@ export const Navbar = ({ authViewModel }) => {
                         navigate('/login');
                       }}
                     >
-                      Logout
+                      {t('nav.logout')}
                     </li>
                   </ul>
                 </div>
@@ -127,10 +146,10 @@ export const Navbar = ({ authViewModel }) => {
           ) : (
             <div className="flex items-center gap-3">
               <Button variant="white" size="small" className="!w-auto" onClick={() => navigate('/login')}>
-                Log In
+                {t('nav.login')}
               </Button>
               <Button variant="red" size="small" className="!w-auto" onClick={() => navigate('/signup')}>
-                Sign Up
+                {t('nav.signup')}
               </Button>
             </div>
           )}

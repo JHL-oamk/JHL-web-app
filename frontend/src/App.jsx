@@ -13,6 +13,7 @@ import { Chatbot } from './views/pages/Chatbot';
 import { LawSources } from './views/pages/LawSources';
 import { Admin } from './views/pages/Admin';
 import { LoadingSpinner } from './views/components/LoadingSpinner';
+import './config/i18n';
 
 function App() {
   const authViewModel = useAuthViewModel();

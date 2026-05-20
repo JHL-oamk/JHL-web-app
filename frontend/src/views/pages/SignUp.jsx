@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useSignUpViewModel } from '../../viewModels/useSignUpViewModel';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Card } from '../components/Card';
@@ -17,6 +18,7 @@ export const SignUp = ({ authViewModel }) => {
   const navigate = useNavigate();
   const signUpForm = useSignUpViewModel();
   const [showSuccess, setShowSuccess] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (authViewModel.isAuthenticated) {
@@ -48,48 +50,48 @@ export const SignUp = ({ authViewModel }) => {
     <>
       <Navbar authViewModel={authViewModel} />
       <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-2 pb-8">
-        <Title text="SIGN UP" />
+        <Title text={t('signup.title')} />
         <Card>
           {/* Success Message */}
-        {showSuccess && (
-          <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
-            <p className="text-black text-[12px] font-medium">
-              ✓ Account created successfully! Redirecting...
-            </p>
-          </div>
-        )}
+          {showSuccess && (
+            <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
+              <p className="text-black text-[12px] font-medium">
+                {t('signup.success')}
+              </p>
+            </div>
+          )}
 
-        {/* Error Message */}
-        {authViewModel.error && !showSuccess && (
-          <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
-            <p className="text-black text-[12px] font-medium">
-              {authViewModel.error}
-            </p>
-          </div>
-        )}
+          {/* Error Message */}
+          {authViewModel.error && !showSuccess && (
+            <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
+              <p className="text-black text-[12px] font-medium">
+                {authViewModel.error}
+              </p>
+            </div>
+          )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit}>
-          {authViewModel.isLoading ? (
-            <LoadingSpinner message="Creating account..." />
-          ) : (
-            <>
-              <TextInput
-                label="Email"
-                name="email"
-                type="email"
-                    value={signUpForm.formData.email}
+          {/* Form */}
+          <form onSubmit={handleSubmit}>
+            {authViewModel.isLoading ? (
+              <LoadingSpinner message={t('signup.submit')} />
+            ) : (
+              <>
+                <TextInput
+                  label={t('signup.email')}
+                  name="email"
+                  type="email"
+                  value={signUpForm.formData.email}
                   onChange={signUpForm.handleInputChange}
                   onBlur={signUpForm.handleBlur}
                   error={signUpForm.errors.email}
                   touched={signUpForm.touched.email}
-                  placeholder="you@example.com"
+                  placeholder={t('signup.email_placeholder')}
                   required
                   disabled={authViewModel.isLoading}
                 />
 
                 <TextInput
-                  label="User Name"
+                  label={t('signup.username')}
                   name="username"
                   type="text"
                   value={signUpForm.formData.username}
@@ -97,13 +99,13 @@ export const SignUp = ({ authViewModel }) => {
                   onBlur={signUpForm.handleBlur}
                   error={signUpForm.errors.username}
                   touched={signUpForm.touched.username}
-                  placeholder="Choose a username"
+                  placeholder={t('signup.username_placeholder')}
                   required
                   disabled={authViewModel.isLoading}
                 />
 
                 <TextInput
-                  label="Password"
+                  label={t('signup.password')}
                   name="password"
                   type="password"
                   value={signUpForm.formData.password}
@@ -111,13 +113,13 @@ export const SignUp = ({ authViewModel }) => {
                   onBlur={signUpForm.handleBlur}
                   error={signUpForm.errors.password}
                   touched={signUpForm.touched.password}
-                  placeholder="At least 8 characters"
+                  placeholder={t('signup.password_placeholder')}
                   required
                   disabled={authViewModel.isLoading}
                 />
 
                 <TextInput
-                  label="Confirm Password"
+                  label={t('signup.confirm_password')}
                   name="confirmPassword"
                   type="password"
                   value={signUpForm.formData.confirmPassword}
@@ -125,13 +127,13 @@ export const SignUp = ({ authViewModel }) => {
                   onBlur={signUpForm.handleBlur}
                   error={signUpForm.errors.confirmPassword}
                   touched={signUpForm.touched.confirmPassword}
-                  placeholder="Confirm your password"
+                  placeholder={t('signup.confirm_password_placeholder')}
                   required
                   disabled={authViewModel.isLoading}
                 />
 
                 <TextInput
-                  label="Organisation (Optional)"
+                  label={t('signup.organisation')}
                   name="organisation"
                   type="text"
                   value={signUpForm.formData.organisation}
@@ -139,12 +141,12 @@ export const SignUp = ({ authViewModel }) => {
                   onBlur={signUpForm.handleBlur}
                   error={signUpForm.errors.organisation}
                   touched={signUpForm.touched.organisation}
-                  placeholder="Your organisation (optional)"
+                  placeholder={t('signup.organisation_placeholder')}
                   disabled={authViewModel.isLoading}
                 />
 
                 <Button type="submit" className="mt-6" disabled={authViewModel.isLoading || showSuccess}>
-                  Sign Up
+                  {t('signup.submit')}
                 </Button>
               </>
             )}
@@ -153,13 +155,13 @@ export const SignUp = ({ authViewModel }) => {
           {/* Login Link */}
           <div className="mt-8 text-center text-[12px]" style={{ color: colors.darkGrey }}>
             <p>
-              Already have an account?{' '}
+              {t('signup.have_account')}{' '}
               <Link
                 to="/login"
                 className="font-bold hover:underline"
                 style={{ color: colors.link }}
               >
-                Log In!
+                {t('signup.login_link')}
               </Link>
             </p>
           </div>

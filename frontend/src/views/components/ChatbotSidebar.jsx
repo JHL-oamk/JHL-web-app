@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Folder, History, Scale } from 'lucide-react';
 import colors from '../../config/colors';
+import { useTranslation } from 'react-i18next';
 
 export const ChatbotSidebar = ({ vm }) => {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language?.startsWith('fi') ? 'fi' : 'en';
   const sidebarRef = useRef(null);
   const [openLawLink, setOpenLawLink] = useState(null);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
@@ -25,8 +28,20 @@ export const ChatbotSidebar = ({ vm }) => {
   const lawCategories = Object.values(
     (vm.laws || []).reduce((acc, law) => {
       const cat = law.category || 'Other';
-      if (!acc[cat]) acc[cat] = { id: cat, name: cat, sources: [] };
-      acc[cat].sources.push({ name: law.name, link: law.link, id: law.id });
+      if (!acc[cat]) acc[cat] = {
+        id: cat,
+        name: cat,
+        name_fi: law.category_fi || cat,
+        name_en: law.category_en || cat,
+        sources: []
+      };
+      acc[cat].sources.push({
+        name: law.name,
+        name_fi: law.name_fi || law.name,
+        name_en: law.name_en || law.name,
+        link: law.link,
+        id: law.id
+      });
       return acc;
     }, {})
   );
@@ -79,7 +94,6 @@ export const ChatbotSidebar = ({ vm }) => {
     );
   };
 
-  // ViewModel handleCreateFolder → Firestoreen
   const handleCreateFolder = () => {
     const name = newFolderName.trim();
     if (!name) return;
@@ -149,7 +163,7 @@ export const ChatbotSidebar = ({ vm }) => {
           className="w-full h-[34px] rounded-full text-[12px] font-medium text-white"
           style={{ backgroundColor: colors.black }}
         >
-          Start New Chat
+          {t('sidebar.new_chat')}
         </button>
       </div>
 
@@ -162,7 +176,7 @@ export const ChatbotSidebar = ({ vm }) => {
         >
           <div className="flex items-center gap-2">
             <History size={12} />
-            <span>Latest Conversations</span>
+            <span>{t('sidebar.latest_conversations')}</span>
           </div>
           <span className="text-[12px]" aria-hidden="true">
             {vm.showChatHistory ? '▾' : '▸'}
@@ -196,16 +210,16 @@ export const ChatbotSidebar = ({ vm }) => {
                       <div className="absolute right-0 top-5 z-10" data-dropdown-interactive="true">
                         <div className="relative w-36 bg-white border border-gray-200 shadow-md text-[11px]">
                           <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
-                            onClick={() => vm.handleShareChat(chat.id)}>Share</button>
+                            onClick={() => vm.handleShareChat(chat.id)}>{t('sidebar.share')}</button>
                           <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
                             onClick={() => setOpenAddToFolderChatId(
                               openAddToFolderChatId === chat.id ? null : chat.id
-                            )}>Add to folder</button>
+                            )}>{t('sidebar.add_to_folder')}</button>
                           {openAddToFolderChatId === chat.id && (
-                          <div className="absolute left-0 top-full mt-1 w-40 bg-white border border-gray-200 shadow-md z-20"
-                            data-dropdown-interactive="true">
+                            <div className="absolute left-0 top-full mt-1 w-40 bg-white border border-gray-200 shadow-md z-20"
+                              data-dropdown-interactive="true">
                               {vm.folders.length === 0 && (
-                                <p className="px-3 py-2 text-[10px]" style={{ color: colors.darkGrey }}>No folders</p>
+                                <p className="px-3 py-2 text-[10px]" style={{ color: colors.darkGrey }}>{t('sidebar.no_folders')}</p>
                               )}
                               {vm.folders.map(folder => (
                                 <button key={folder.id}
@@ -219,10 +233,10 @@ export const ChatbotSidebar = ({ vm }) => {
                             </div>
                           )}
                           <button className="w-full text-left px-3 py-2 hover:bg-gray-100 text-red-600"
-                            onClick={() => handleDeleteChat(chat.id)}>Delete</button>
+                            onClick={() => handleDeleteChat(chat.id)}>{t('sidebar.delete')}</button>
                           {chat.folderId !== null && (
                             <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
-                              onClick={() => handleRemoveFromFolder(chat.id)}>Remove from folder</button>
+                              onClick={() => handleRemoveFromFolder(chat.id)}>{t('sidebar.remove_from_folder')}</button>
                           )}
                         </div>
                       </div>
@@ -243,7 +257,7 @@ export const ChatbotSidebar = ({ vm }) => {
         >
           <div className="flex items-center gap-2">
             <Folder size={12} />
-            <span>Conversation Folders</span>
+            <span>{t('sidebar.conversation_folders')}</span>
           </div>
           <span className="text-[12px]" aria-hidden="true">
             {vm.showFolders ? '▾' : '▸'}
@@ -252,7 +266,7 @@ export const ChatbotSidebar = ({ vm }) => {
 
         {lawLimitWarning && (
           <div className="mt-2 mb-2 rounded-md bg-red-100 text-red-700 text-[11px] px-3 py-2">
-            You can select maximum of {MAX_LAWS} laws.
+            {t('sidebar.law_limit_warning', { max: MAX_LAWS })}
           </div>
         )}
 
@@ -263,14 +277,14 @@ export const ChatbotSidebar = ({ vm }) => {
               style={{ color: colors.darkGrey }}
               onClick={() => setShowCreateFolder(!showCreateFolder)}>
               <span className="text-[14px] leading-none">+</span>
-              <span>Create New Folder</span>
+              <span>{t('sidebar.create_folder')}</span>
             </button>
 
             {showCreateFolder && (
               <div className="mt-2 rounded-md border px-3 py-2" style={{ borderColor: colors.grey }}>
                 <input type="text" value={newFolderName}
                   onChange={e => setNewFolderName(e.target.value)}
-                  placeholder="Folder name"
+                  placeholder={t('sidebar.folder_name_placeholder')}
                   className="w-full h-[28px] px-2 text-[11px] border rounded"
                   style={{ borderColor: colors.grey }} />
                 <div className="mt-2 flex items-center gap-2">
@@ -285,7 +299,7 @@ export const ChatbotSidebar = ({ vm }) => {
                   <button type="button"
                     className="h-[24px] px-3 rounded-full text-[10px] text-white"
                     style={{ backgroundColor: colors.black }}
-                    onClick={handleCreateFolder}>Create</button>
+                    onClick={handleCreateFolder}>{t('sidebar.create')}</button>
                 </div>
               </div>
             )}
@@ -331,11 +345,11 @@ export const ChatbotSidebar = ({ vm }) => {
                   <div className="absolute right-2 top-4 z-10" data-dropdown-interactive="true">
                     <div className="w-36 bg-white border border-gray-200 shadow-md text-[11px]">
                       <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
-                        onClick={() => handleShareFolder(folder.id)}>Share</button>
+                        onClick={() => handleShareFolder(folder.id)}>{t('sidebar.share')}</button>
                       <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
-                        onClick={() => handleEditFolder(folder.id)}>Edit</button>
+                        onClick={() => handleEditFolder(folder.id)}>{t('sidebar.edit')}</button>
                       <button className="w-full text-left px-3 py-2 hover:bg-gray-100 text-red-600"
-                        onClick={() => handleDeleteFolder(folder.id)}>Delete</button>
+                        onClick={() => handleDeleteFolder(folder.id)}>{t('sidebar.delete')}</button>
                     </div>
                   </div>
                 )}
@@ -344,19 +358,19 @@ export const ChatbotSidebar = ({ vm }) => {
                   <div className="mt-2 rounded-md border px-3 py-2" style={{ borderColor: colors.grey }}>
                     <input type="text" value={editingFolderName}
                       onChange={e => setEditingFolderName(e.target.value)}
-                      placeholder="Folder name"
+                      placeholder={t('sidebar.folder_name_placeholder')}
                       className="w-full h-[28px] px-2 text-[11px] border rounded"
                       style={{ borderColor: colors.grey }} />
                     <div className="mt-2 flex justify-end gap-2">
                       <button type="button" className="h-[24px] px-3 rounded-full text-[10px]"
                         style={{ color: colors.darkGrey }}
                         onClick={() => { setEditingFolderId(null); setEditingFolderName(''); }}>
-                        Cancel
+                        {t('sidebar.cancel')}
                       </button>
                       <button type="button"
                         className="h-[24px] px-3 rounded-full text-[10px] text-white"
                         style={{ backgroundColor: colors.black }}
-                        onClick={handleSaveEditFolder}>Save</button>
+                        onClick={handleSaveEditFolder}>{t('sidebar.save')}</button>
                     </div>
                   </div>
                 )}
@@ -382,11 +396,11 @@ export const ChatbotSidebar = ({ vm }) => {
                             <div className="absolute right-0 top-5 z-10" data-dropdown-interactive="true">
                               <div className="w-36 bg-white border border-gray-200 shadow-md text-[11px]">
                                 <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
-                                  onClick={() => vm.handleShareChat(chat.id)}>Share</button>
+                                  onClick={() => vm.handleShareChat(chat.id)}>{t('sidebar.share')}</button>
                                 <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
-                                  onClick={() => handleRemoveFromFolder(chat.id)}>Remove from folder</button>
+                                  onClick={() => handleRemoveFromFolder(chat.id)}>{t('sidebar.remove_from_folder')}</button>
                                 <button className="w-full text-left px-3 py-2 hover:bg-gray-100 text-red-600"
-                                  onClick={() => handleDeleteChat(chat.id)}>Delete</button>
+                                  onClick={() => handleDeleteChat(chat.id)}>{t('sidebar.delete')}</button>
                               </div>
                             </div>
                           )}
@@ -394,7 +408,7 @@ export const ChatbotSidebar = ({ vm }) => {
                       </div>
                     ))}
                     {vm.chats.filter(chat => chat.folderId === folder.id).length === 0 && (
-                      <p className="text-[11px]" style={{ color: colors.darkGrey }}>No chats</p>
+                      <p className="text-[11px]" style={{ color: colors.darkGrey }}>{t('sidebar.no_chats')}</p>
                     )}
                   </div>
                 )}
@@ -413,7 +427,7 @@ export const ChatbotSidebar = ({ vm }) => {
         >
           <div className="flex items-center gap-2">
             <Scale size={12} />
-            <span>Select Law Sources</span>
+            <span>{t('sidebar.select_law_sources')}</span>
           </div>
           <span className="text-[12px]" aria-hidden="true">
             {vm.showLawSource ? '▾' : '▸'}
@@ -426,6 +440,7 @@ export const ChatbotSidebar = ({ vm }) => {
               const categoryIds = category.sources.map(s => s.id);
               const isCategorySelected = categoryIds.every(id => vm.selectedLaws.includes(id));
               const isCollapsed = collapsedCategoryIds.includes(category.id);
+              const categoryLabel = lang === 'fi' ? category.name_fi : category.name_en;
 
               return (
                 <div key={category.id}>
@@ -433,7 +448,7 @@ export const ChatbotSidebar = ({ vm }) => {
                     <input type="checkbox" checked={isCategorySelected}
                       onChange={() => handleCategoryToggle(category)}
                       className="mt-0.5" style={{ accentColor: colors.primary }} />
-                    <p className="text-[12px] text-black">{category.name}</p>
+                    <p className="text-[12px] text-black">{categoryLabel}</p>
                     <button type="button" className="text-[12px]" style={{ color: colors.darkGrey }}
                       onClick={() => toggleCategoryCollapse(category.id)}>
                       {isCollapsed ? '▸' : '▾'}
@@ -442,34 +457,37 @@ export const ChatbotSidebar = ({ vm }) => {
                   <div className="mt-2" style={{ borderBottom: `1px solid ${colors.lightGrey}` }} />
                   {!isCollapsed && (
                     <div className="mt-2 space-y-2">
-                      {category.sources.map(law => (
-                        <div key={law.id} className="flex items-start gap-2">
-                          <input type="checkbox" checked={vm.selectedLaws.includes(law.id)}
-                            onChange={() => {
-                              vm.setSelectedLaws(prev => {
-                                if (prev.includes(law.id)) return prev.filter(id => id !== law.id);
-                                if (prev.length >= MAX_LAWS) {
-                                  setLawLimitWarning(true);
-                                  setTimeout(() => setLawLimitWarning(false), 2500);
-                                  return prev;
-                                }
-                                return [...prev, law.id];
-                              });
-                            }}
-                            className="mt-1" style={{ accentColor: colors.primary }} />
-                          <button type="button" className="text-left"
-                            onClick={() => setOpenLawLink(openLawLink === law.id ? null : law.id)}>
-                            <p className="text-[12px] text-black">{law.name}</p>
-                            {openLawLink === law.id && (
-                              <a href={law.link} target="_blank" rel="noopener noreferrer"
-                                className="text-[11px] underline block max-w-[200px] truncate"
-                                style={{ color: colors.link }} title={law.link}>
-                                {law.link}
-                              </a>
-                            )}
-                          </button>
-                        </div>
-                      ))}
+                      {category.sources.map(law => {
+                        const lawLabel = lang === 'fi' ? law.name_fi : law.name_en;
+                        return (
+                          <div key={law.id} className="flex items-start gap-2">
+                            <input type="checkbox" checked={vm.selectedLaws.includes(law.id)}
+                              onChange={() => {
+                                vm.setSelectedLaws(prev => {
+                                  if (prev.includes(law.id)) return prev.filter(id => id !== law.id);
+                                  if (prev.length >= MAX_LAWS) {
+                                    setLawLimitWarning(true);
+                                    setTimeout(() => setLawLimitWarning(false), 2500);
+                                    return prev;
+                                  }
+                                  return [...prev, law.id];
+                                });
+                              }}
+                              className="mt-1" style={{ accentColor: colors.primary }} />
+                            <button type="button" className="text-left"
+                              onClick={() => setOpenLawLink(openLawLink === law.id ? null : law.id)}>
+                              <p className="text-[12px] text-black">{lawLabel}</p>
+                              {openLawLink === law.id && (
+                                <a href={law.link} target="_blank" rel="noopener noreferrer"
+                                  className="text-[11px] underline block max-w-[200px] truncate"
+                                  style={{ color: colors.link }} title={law.link}>
+                                  {law.link}
+                                </a>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -481,7 +499,7 @@ export const ChatbotSidebar = ({ vm }) => {
 
       {/* Search */}
       <div className="px-6 py-4 border-t" style={{ borderColor: colors.grey }}>
-        <input type="text" placeholder="Search conversations..."
+        <input type="text" placeholder={t('sidebar.search_placeholder')}
           value={vm.chatSearch} onChange={e => vm.setChatSearch(e.target.value)}
           className="w-full h-[30px] px-3 text-[12px] border rounded-full"
           style={{ borderColor: colors.grey }} />
