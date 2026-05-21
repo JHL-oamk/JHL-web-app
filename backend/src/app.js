@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const { verifyToken } = require('./middleware/authMiddleware');
@@ -7,6 +8,7 @@ const userRoutes = require('./routes/userRoutes');
 const claudeRoutes = require('./routes/claudeRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const folderRoutes = require('./routes/folderRoutes');
+const lawSourceRoutes = require('./routes/lawSourceRoutes');
 
 const app = express();
 
@@ -20,6 +22,7 @@ app.use(cors(corsOptions));
 app.options(/(.*)/,  cors(corsOptions));
 
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -31,5 +34,6 @@ app.use('/api/users', verifyToken, userRoutes);
 app.use('/api/claude', claudeRoutes);
 app.use('/api/chats', verifyToken, chatRoutes);
 app.use('/api/folders', verifyToken, folderRoutes);
+app.use('/api/law-sources', verifyToken, lawSourceRoutes);
 
 module.exports = app;

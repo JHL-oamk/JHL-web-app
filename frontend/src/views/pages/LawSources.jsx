@@ -1,8 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Navbar } from '../components/Navbar';
 import { Button } from '../components/Button';
+import { uploadLawSourceFileApi, deleteLawSourceFileApi } from '../../models/lawSourceApi';
 import colors from '../../config/colors';
+
+const LAW_SOURCES_STORAGE_KEY = 'jhl-law-sources';
+
+const loadSavedCategories = () => {
+  try {
+    const saved = window.localStorage.getItem(LAW_SOURCES_STORAGE_KEY);
+    if (!saved) return null;
+    const parsed = JSON.parse(saved);
+    if (Array.isArray(parsed)) return parsed;
+  } catch (error) {
+    console.warn('Failed to load saved law sources:', error);
+  }
+  return null;
+};
 
 const buildInitialCategories = () => ([
   {
@@ -65,13 +81,15 @@ const buildInitialCategories = () => ([
 ]);
 
 export const LawSources = ({ authViewModel }) => {
-  const [categories, setCategories] = useState(buildInitialCategories);
+  const [categories, setCategories] = useState(() => loadSavedCategories() || buildInitialCategories());
   const [isEditMode, setIsEditMode] = useState(false);
   const [search, setSearch] = useState('');
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryTitle, setNewCategoryTitle] = useState('');
   const [sourceDrafts, setSourceDrafts] = useState({});
   const [collapsedCategories, setCollapsedCategories] = useState({});
+  const [uploadingFiles, setUploadingFiles] = useState({});
+  const [uploadErrors, setUploadErrors] = useState({});
   const addCategoryRef = useRef(null);
   const sourceDraftRefs = useRef({});
   const { t, i18n } = useTranslation();
@@ -106,6 +124,14 @@ export const LawSources = ({ authViewModel }) => {
     setSourceDrafts({});
   };
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(LAW_SOURCES_STORAGE_KEY, JSON.stringify(categories));
+    } catch (error) {
+      console.warn('Failed to save law sources:', error);
+    }
+  }, [categories]);
+
   const handleAddCategoryToggle = () => {
     setShowAddCategory((prev) => !prev);
     setNewCategoryTitle('');
@@ -127,7 +153,20 @@ export const LawSources = ({ authViewModel }) => {
     setCategories((prev) => prev.filter((category) => category.id !== categoryId));
   };
 
-  const handleDeleteSource = (categoryId, sourceId) => {
+  const handleDeleteSource = async (categoryId, sourceId) => {
+    const targetSource = categories
+      .find((category) => category.id === categoryId)
+      ?.sources.find((source) => source.id === sourceId);
+
+    if (targetSource?.type === 'file' && targetSource.url) {
+      try {
+        await deleteLawSourceFileApi(targetSource.url);
+      } catch (error) {
+        toast.error(error.message || 'Failed to delete uploaded file');
+        return;
+      }
+    }
+
     setCategories((prev) => prev.map((category) => {
       if (category.id !== categoryId) return category;
       return { ...category, sources: category.sources.filter((source) => source.id !== sourceId) };
@@ -176,7 +215,7 @@ export const LawSources = ({ authViewModel }) => {
       [categoryId]: {
         ...prev[categoryId],
         [field]: value,
-        ...(field === 'url' && value.trim() ? { fileName: '', fileUrl: '' } : {})
+        ...(field === 'url' && value.trim() ? { fileName: '', fileUrl: '', file: null } : {})
       }
     }));
   };
@@ -186,42 +225,61 @@ export const LawSources = ({ authViewModel }) => {
     const fileUrl = URL.createObjectURL(file);
     setSourceDrafts((prev) => ({
       ...prev,
-      [categoryId]: { ...prev[categoryId], url: '', fileName: file.name, fileUrl }
+      [categoryId]: { ...prev[categoryId], url: '', fileName: file.name, fileUrl, file }
     }));
   };
 
   const handleClearFile = (categoryId) => {
     setSourceDrafts((prev) => ({
       ...prev,
-      [categoryId]: { ...prev[categoryId], fileName: '', fileUrl: '' }
+      [categoryId]: { ...prev[categoryId], fileName: '', fileUrl: '', file: null }
     }));
   };
 
-  const handleAddSource = (categoryId) => {
+  const handleAddSource = async (categoryId) => {
     const draft = sourceDrafts[categoryId];
     if (!draft) return;
     const title = draft.title.trim();
     const url = draft.url.trim();
-    const fileUrl = draft.fileUrl;
+    const file = draft.file;
     if (!title && !draft.fileName) return;
-    if (!url && !fileUrl) return;
-    const source = {
-      id: Date.now(),
-      type: url ? 'link' : 'file',
-      title: title || draft.fileName,
-      title_en: title || draft.fileName,
-      title_fi: title || draft.fileName,
-      url: url || fileUrl,
-      fileName: draft.fileName || ''
-    };
-    setCategories((prev) => prev.map((category) => {
-      if (category.id !== categoryId) return category;
-      return { ...category, sources: [...category.sources, source] };
-    }));
-    setSourceDrafts((prev) => ({
-      ...prev,
-      [categoryId]: { open: false, title: '', url: '', fileName: '', fileUrl: '' }
-    }));
+    if (!url && !file) return;
+
+    let sourceUrl = url;
+    try {
+      setUploadErrors((prev) => ({ ...prev, [categoryId]: '' }));
+      if (file) {
+        setUploadingFiles((prev) => ({ ...prev, [categoryId]: true }));
+        const uploadResult = await uploadLawSourceFileApi(file);
+        sourceUrl = uploadResult.fileUrl;
+      }
+
+      const source = {
+        id: Date.now(),
+        type: url ? 'link' : 'file',
+        title: title || draft.fileName,
+        title_en: title || draft.fileName,
+        title_fi: title || draft.fileName,
+        url: sourceUrl,
+        fileName: draft.fileName || ''
+      };
+
+      setCategories((prev) => prev.map((category) => {
+        if (category.id !== categoryId) return category;
+        return { ...category, sources: [...category.sources, source] };
+      }));
+      setSourceDrafts((prev) => ({
+        ...prev,
+        [categoryId]: { open: false, title: '', url: '', fileName: '', fileUrl: '', file: null }
+      }));
+      if (file) {
+        toast.success('PDF uploaded successfully');
+      }
+    } catch (error) {
+      setUploadErrors((prev) => ({ ...prev, [categoryId]: error.message || 'Upload failed' }));
+    } finally {
+      setUploadingFiles((prev) => ({ ...prev, [categoryId]: false }));
+    }
   };
 
   const renderSource = (categoryId, source) => (
@@ -367,6 +425,7 @@ export const LawSources = ({ authViewModel }) => {
                             {(() => {
                               const hasFile = Boolean(draft.fileName);
                               const hasLink = Boolean(draft.url?.trim());
+                              const isUploading = Boolean(uploadingFiles[category.id]);
                               return (
                                 <>
                                   <div className="flex items-center gap-5">
@@ -381,12 +440,18 @@ export const LawSources = ({ authViewModel }) => {
                                     <button
                                       type="button"
                                       onClick={() => handleAddSource(category.id)}
+                                      disabled={isUploading}
                                       className="text-xs rounded-full px-4 py-2"
-                                      style={{ backgroundColor: colors.darkGrey, color: colors.white }}
+                                      style={{ backgroundColor: colors.darkGrey, color: colors.white, opacity: isUploading ? 0.6 : 1 }}
                                     >
-                                      {t('law_sources.add')}
+                                      {isUploading ? 'Uploading…' : t('law_sources.add')}
                                     </button>
                                   </div>
+                                  {uploadErrors[category.id] && (
+                                    <div className="mt-2 text-xs" style={{ color: '#c53030' }}>
+                                      {uploadErrors[category.id]}
+                                    </div>
+                                  )}
                                   <div className="my-3 border-b" style={{ borderColor: colors.grey }} />
                                   <div className="flex items-center gap-5">
                                     <span className="text-xs w-[72px]" style={{ color: colors.darkGrey }}>{t('law_sources.source_url')}</span>
@@ -416,6 +481,7 @@ export const LawSources = ({ authViewModel }) => {
                                             {t('law_sources.upload_file')}
                                             <input
                                               type="file"
+                                              accept="application/pdf"
                                               className="hidden"
                                               onChange={(event) => handleFileSelect(category.id, event.target.files?.[0])}
                                             />
