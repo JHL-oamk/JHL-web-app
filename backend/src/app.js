@@ -4,8 +4,6 @@ require('dotenv').config();
 
 const { verifyToken } = require('./middleware/authMiddleware');
 const userRoutes = require('./routes/userRoutes');
-const queryRoutes = require('./routes/queryRoutes');
-const resultRoutes = require('./routes/resultRoutes');
 const claudeRoutes = require('./routes/claudeRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const folderRoutes = require('./routes/folderRoutes');
@@ -30,8 +28,6 @@ app.get('/api/health', (req, res) => {
 
 // Protected routes
 app.use('/api/users', verifyToken, userRoutes);
-app.use('/api/queries', verifyToken, queryRoutes);
-app.use('/api/results', verifyToken, resultRoutes);
 app.use('/api/claude', claudeRoutes);
 app.use('/api/chats', verifyToken, chatRoutes);
 app.use('/api/folders', verifyToken, folderRoutes);
