@@ -5,9 +5,11 @@ import { ChatbotSidebar } from '../components/ChatbotSidebar';
 import colors from '../../config/colors';
 import { useChatbotViewModel } from "../../viewModels/ChatbotViewModel";
 import ReactMarkdown from "react-markdown";
+import { useTranslation } from 'react-i18next';
 
 export const Chatbot = ({ authViewModel }) => {
   const vm = useChatbotViewModel(authViewModel);
+  const { t } = useTranslation();
   
   // 1. SCROLL REFERENCE: To control the auto-scrolling of the message container
   const scrollRef = useRef(null);
@@ -20,10 +22,7 @@ export const Chatbot = ({ authViewModel }) => {
   }, [vm.messages]);
 
   // Suggestions for the Welcome View
-  const suggestions = [
-    "Tell me something about the Finnish labor law...",
-    "What should I do if I have law related problem at work place ?..."
-  ];
+  const suggestions = t('chatbot.suggestions', { returnObjects: true });
 
   return (
     <div className="h-screen bg-white pt-[50px] overflow-hidden">
@@ -56,10 +55,10 @@ export const Chatbot = ({ authViewModel }) => {
 
                       <div className="w-full px-7 py-6 rounded-[28px] bg-white shadow-sm border border-gray-100">
                         <h2 className="text-[14px] font-semibold text-black mb-1">
-                          Hello! I am your law assistant, what can I help you today?
+                          {t('chatbot.welcome_title')}
                         </h2>
                         <p className="text-[12px] text-gray-500 mb-6">
-                          For quick start, select a topic below to start conversation...
+                          {t('chatbot.welcome_subtitle')}
                         </p>
                         
                         <div className="flex flex-col gap-3">
@@ -209,12 +208,12 @@ export const Chatbot = ({ authViewModel }) => {
           <div className="pb-2 pt-2 pr-4 mt-auto">
             <div className="bg-white rounded-3xl p-3 mx-auto w-[50vw] shadow-md border border-gray-100">
               <div className="text-[11px] mb-3 font-medium" style={{ color: colors.darkGrey }}>
-                Selected <span className="text-blue-600">{vm.selectedLaws.length || '0'}</span> sources
+                {t('chatbot.selected_sources')} <span className="text-blue-600">{vm.selectedLaws.length || '0'}</span> {t('chatbot.sources_label')}
               </div>
               
               <div className="flex items-end gap-4">
                 <textarea
-                  placeholder="Write your question here..."
+                  placeholder={t('chatbot.placeholder')}
                   value={vm.input}
                   onChange={(e) => vm.setInput(e.target.value)}
                   className="flex-1 text-[14px] leading-relaxed min-h-[40px] outline-none resize-none"
@@ -225,13 +224,13 @@ export const Chatbot = ({ authViewModel }) => {
                   className="h-[36px] px-6 rounded-full text-[12px] font-bold text-white shadow-sm transition-transform active:scale-95"
                   style={{ backgroundColor: colors.primary }}
                 >
-                  Send
+                  {t('chatbot.send')}
                 </button>
               </div>
             </div>
             
             <p className="text-[10px] mt-2 text-center" style={{ color: colors.darkGrey }}>
-              *AI may make mistakes, always check the law sources yourself.
+              {t('chatbot.disclaimer')}
             </p>
           </div>
         </main>

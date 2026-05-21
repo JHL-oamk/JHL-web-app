@@ -1,0 +1,120 @@
+{
+  "nav": {
+    "chatbot": "Chatbot",
+    "law_sources": "Law Sources",
+    "admin": "Admin",
+    "settings": "Settings",
+    "user_profile": "User Profile",
+    "logout": "Logout",
+    "login": "Log In",
+    "signup": "Sign Up"
+  },
+  "login": {
+    "title": "LOG IN",
+    "success": "✓ Login successful! Redirecting...",
+    "email": "Email",
+    "email_placeholder": "you@example.com",
+    "password": "Password",
+    "password_placeholder": "Enter your password",
+    "forgot_password": "Forgot your password?",
+    "remember_me": "Remember me",
+    "submit": "Log In",
+    "no_account": "Don't have an account?",
+    "signup_link": "Sign up!",
+    "or": "or"
+  },
+  "signup": {
+    "title": "SIGN UP",
+    "success": "✓ Account created successfully! Redirecting...",
+    "email": "Email",
+    "email_placeholder": "you@example.com",
+    "username": "User Name",
+    "username_placeholder": "Choose a username",
+    "password": "Password",
+    "password_placeholder": "At least 8 characters",
+    "confirm_password": "Confirm Password",
+    "confirm_password_placeholder": "Confirm your password",
+    "organisation": "Organisation (Optional)",
+    "organisation_placeholder": "Your organisation (optional)",
+    "submit": "Sign Up",
+    "have_account": "Already have an account?",
+    "login_link": "Log In!"
+  },
+  "reset_password": {
+    "title": "RESET PASSWORD",
+    "success": "✓ We've sent a password reset link if the email exists.",
+    "description": "*Reset Password via Email. We will send a link to the email you used when you signed up your account. Type in your email below to receive the link.",
+    "email": "Email",
+    "login_link": "Log In?",
+    "submit": "Send Reset Link",
+    "wait": "Wait {{seconds}}s",
+    "cooldown": "You can request another email in {{seconds}} seconds"
+  },
+  "settings": {
+    "title": "Settings",
+    "user_profile": "User Profile",
+    "username": "User Name:",
+    "email": "User Email:",
+    "google_account": "Linked Google Account:",
+    "password": "Password:",
+    "reset_password": "Reset password via email",
+    "organisation": "Organisation:",
+    "join_organisation": "Join organisation",
+    "logout": "Log Out",
+    "delete_account": "DELETE ACCOUNT",
+    "delete_confirm": "Are you sure you want to delete your account? This action cannot be undone."
+  },
+  "admin": {
+    "title": "Admin",
+    "coming_soon": "Content coming soon."
+  },
+  "law_sources": {
+    "title": "Law Sources List",
+    "search_placeholder": "Search keywords...",
+    "edit": "Edit",
+    "save": "Save",
+    "add_category": "Add New Category",
+    "category_name_placeholder": "Category name",
+    "add": "+ Add",
+    "add_source": "Add New Source",
+    "source_title": "Title:",
+    "source_title_placeholder": "Source title",
+    "source_url": "Source:",
+    "source_url_placeholder": "Paste source link here...",
+    "upload_file": "Upload file"
+  },
+  "chatbot": {
+    "title": "Legal Chatbot",
+    "welcome_title": "Hello! I am your law assistant, what can I help you today?",
+    "welcome_subtitle": "For quick start, select a topic below to start conversation...",
+    "suggestions": [
+      "Tell me something about the Finnish labor law...",
+      "What should I do if I have law related problem at work place ?..."
+    ],
+    "selected_sources": "Selected",
+    "sources_label": "sources",
+    "placeholder": "Write your question here...",
+    "send": "Send",
+    "disclaimer": "*AI may make mistakes, always check the law sources yourself."
+  },
+  "sidebar": {
+    "new_chat": "Start New Chat",
+    "latest_conversations": "Latest Conversations",
+    "conversation_folders": "Conversation Folders",
+    "select_law_sources": "Select Law Sources",
+    "search_placeholder": "Search conversations...",
+    "create_folder": "Create New Folder",
+    "folder_name_placeholder": "Folder name",
+    "create": "Create",
+    "cancel": "Cancel",
+    "save": "Save",
+    "share": "Share",
+    "add_to_folder": "Add to folder",
+    "remove_from_folder": "Remove from folder",
+    "delete": "Delete",
+    "no_chats": "No chats",
+    "no_folders": "No folders",
+    "law_limit_warning": "You can select maximum of {{max}} laws.",
+    "edit": "Edit"
+  }
+}

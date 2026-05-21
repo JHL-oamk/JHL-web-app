@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Card } from '../components/Card';
 import { Title } from '../components/Title';
@@ -15,6 +16,7 @@ import { useResetPasswordViewModel } from '../../viewModels/useResetPasswordView
 
 export const ResetPassword = ({ authViewModel }) => {
   const vm = useResetPasswordViewModel();
+  const { t } = useTranslation();
 
   const [touched, setTouched] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
@@ -24,21 +26,13 @@ export const ResetPassword = ({ authViewModel }) => {
   };
 
   const handleBlur = () => {
-    setTouched((prev) => ({
-      ...prev,
-      email: true,
-    }));
+    setTouched((prev) => ({ ...prev, email: true }));
   };
 
-  // ❌ NO redirect anymore
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const success = await vm.resetPassword();
-
-    if (success) {
-      setShowSuccess(true);
-    }
+    if (success) setShowSuccess(true);
   };
 
   const isDisabled = vm.loading || !vm.canSubmit;
@@ -47,37 +41,37 @@ export const ResetPassword = ({ authViewModel }) => {
     <>
       <Navbar authViewModel={authViewModel} />
       <div className="min-h-screen bg-white flex flex-col items-center justify-center pt-0 pb-8">
-        <Title text="RESET PASSWORD" />
+        <Title text={t('reset_password.title')} />
         <Card>
           {/* Success Message */}
-        {showSuccess && (
-          <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
-            <p className="text-black text-[12px] font-medium">
-              ✓ We've sent a password reset link if the email exists.
-            </p>
-          </div>
-        )}
+          {showSuccess && (
+            <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
+              <p className="text-black text-[12px] font-medium">
+                {t('reset_password.success')}
+              </p>
+            </div>
+          )}
 
-        {/* Error Message */}
-        {vm.errorMessage && !showSuccess && (
-          <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
-            <p className="text-black text-[12px] font-medium">
-              {vm.errorMessage}
-            </p>
-          </div>
-        )}
+          {/* Error Message */}
+          {vm.errorMessage && !showSuccess && (
+            <div className="mb-6 p-4 bg-white border-2 border-black rounded-2xl">
+              <p className="text-black text-[12px] font-medium">
+                {vm.errorMessage}
+              </p>
+            </div>
+          )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="mt-8">
-          <p className="text-[12px] leading-relaxed font-medium mb-6" style={{ color: colors.darkGrey }}>
-            *Reset Password via Email. We will send a link to the email you used when you signed up your account. Type in your email below to receive the link.
-          </p>
-          {vm.loading ? (
-            <LoadingSpinner message="Sending reset link..." />
-          ) : (
-            <>
-              <TextInput
-                  label="Email"
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="mt-8">
+            <p className="text-[12px] leading-relaxed font-medium mb-6" style={{ color: colors.darkGrey }}>
+              {t('reset_password.description')}
+            </p>
+            {vm.loading ? (
+              <LoadingSpinner message={t('reset_password.submit')} />
+            ) : (
+              <>
+                <TextInput
+                  label={t('reset_password.email')}
                   name="email"
                   type="email"
                   value={vm.email}
@@ -91,10 +85,9 @@ export const ResetPassword = ({ authViewModel }) => {
                   disabled={vm.loading || vm.cooldown > 0 || showSuccess}
                 />
 
-                {/* Log In text in middle */}
                 <div className="text-center my-6">
                   <Link to="/login" className="text-[12px] font-bold hover:underline" style={{ color: colors.link }}>
-                    Log In?
+                    {t('reset_password.login_link')}
                   </Link>
                 </div>
 
@@ -103,18 +96,17 @@ export const ResetPassword = ({ authViewModel }) => {
                   disabled={isDisabled}
                   className={`mt-4 ${vm.cooldown > 0 || vm.loading ? 'bg-gray-400 text-gray-700' : ''}`}
                 >
-                  {vm.cooldown > 0 ? `Wait ${vm.cooldown}s` : 'Send Reset Link'}
+                  {vm.cooldown > 0 ? t('reset_password.wait', { seconds: vm.cooldown }) : t('reset_password.submit')}
                 </Button>
 
                 {vm.cooldown > 0 && (
                   <p className="text-xs text-gray-600 mt-3 text-center">
-                    You can request another email in {vm.cooldown} seconds
+                    {t('reset_password.cooldown', { seconds: vm.cooldown })}
                   </p>
                 )}
               </>
             )}
           </form>
-
         </Card>
       </div>
     </>
