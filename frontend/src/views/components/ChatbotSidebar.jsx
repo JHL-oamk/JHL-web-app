@@ -7,6 +7,9 @@ export const ChatbotSidebar = ({ vm }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.startsWith('fi') ? 'fi' : 'en';
   const sidebarRef = useRef(null);
+  const chatScrollRef = useRef(null);
+  const folderScrollRef = useRef(null);
+  const lawScrollRef = useRef(null);
   const [openLawLink, setOpenLawLink] = useState(null);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -22,11 +25,16 @@ export const ChatbotSidebar = ({ vm }) => {
   const [editingFolderName, setEditingFolderName] = useState('');
   const [collapsedCategoryIds, setCollapsedCategoryIds] = useState([]);
   const [lawLimitWarning, setLawLimitWarning] = useState(false);
+  const [scrollEndFeedback, setScrollEndFeedback] = useState({
+    chat: false,
+    folders: false,
+    laws: false,
+  });
 
   const MAX_LAWS = 3;
-  const CHAT_SECTION_HEIGHT = '25%';
-  const FOLDER_SECTION_HEIGHT = '25%';
-  const LAW_SECTION_HEIGHT = '50%';
+  const CHAT_SECTION_WEIGHT = 25;
+  const FOLDER_SECTION_WEIGHT = 25;
+  const LAW_SECTION_WEIGHT = 50;
 
   const lawCategories = Object.values(
     (vm.laws || []).reduce((acc, law) => {
@@ -55,6 +63,17 @@ export const ChatbotSidebar = ({ vm }) => {
     setOpenFolderColorId(null);
   };
 
+  const updateScrollEndFeedback = (key, element) => {
+    if (!element) return;
+    const hasOverflow = element.scrollHeight > element.clientHeight + 2;
+    const isAtBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 2;
+    const shouldShow = hasOverflow && !isAtBottom;
+
+    setScrollEndFeedback(prev => (
+      prev[key] === shouldShow ? prev : { ...prev, [key]: shouldShow }
+    ));
+  };
+
   useEffect(() => {
     const handleDocumentClick = (event) => {
       const sidebar = sidebarRef.current;
@@ -68,6 +87,55 @@ export const ChatbotSidebar = ({ vm }) => {
     document.addEventListener('click', handleDocumentClick);
     return () => document.removeEventListener('click', handleDocumentClick);
   }, []);
+
+  useEffect(() => {
+    const elements = [
+      { key: 'chat', ref: chatScrollRef },
+      { key: 'folders', ref: folderScrollRef },
+      { key: 'laws', ref: lawScrollRef },
+    ];
+
+    const handlers = [];
+
+    elements.forEach(({ key, ref }) => {
+      const element = ref.current;
+      if (!element) return;
+
+      const handler = () => updateScrollEndFeedback(key, element);
+      handlers.push({ element, handler });
+      handler();
+      element.addEventListener('scroll', handler, { passive: true });
+    });
+
+    return () => {
+      handlers.forEach(({ element, handler }) => {
+        element.removeEventListener('scroll', handler);
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    const rafId = window.requestAnimationFrame(() => {
+      updateScrollEndFeedback('chat', chatScrollRef.current);
+      updateScrollEndFeedback('folders', folderScrollRef.current);
+      updateScrollEndFeedback('laws', lawScrollRef.current);
+    });
+
+    return () => window.cancelAnimationFrame(rafId);
+  }, [
+    vm.chats.length,
+    vm.folders.length,
+    vm.showChatHistory,
+    vm.showFolders,
+    vm.showLawSource,
+    collapsedCategoryIds.join(','),
+    showCreateFolder,
+    editingFolderId,
+    openAddToFolderChatId,
+    openMenu?.type,
+    vm.openFolderId,
+    vm.chatSearch,
+  ]);
 
   const handleCategoryToggle = (category) => {
     const categoryIds = category.sources.map(s => s.id);
@@ -156,10 +224,10 @@ export const ChatbotSidebar = ({ vm }) => {
   return (
     <aside
       ref={sidebarRef}
-      className="w-[280px] bg-white border-r flex flex-col h-full overflow-hidden"
+      className="w-[280px] bg-white flex flex-col h-full overflow-hidden"
       style={{ borderColor: colors.grey }}
     >
-      <div className="flex-none px-6 pt-6 pb-4 border-b" style={{ borderColor: colors.grey }}>
+      <div className="flex-none px-6 pt-3 pb-1" style={{ borderColor: colors.grey }}>
         <button
           onClick={vm.handleNewChat}
           className="w-full h-[34px] rounded-full text-[12px] font-medium text-white"
@@ -171,8 +239,8 @@ export const ChatbotSidebar = ({ vm }) => {
 
       <div className="flex-1 min-h-0 overflow-hidden">
         <div className="h-full flex flex-col min-h-0">
-          <section className="flex flex-col min-h-0 overflow-hidden" style={{ flex: `0 0 ${CHAT_SECTION_HEIGHT}` }}>
-            <div className="flex-none px-6 pt-5 pb-3" style={{ color: colors.darkGrey }}>
+          <section className="flex flex-col min-h-0 overflow-hidden" style={{ flex: vm.showChatHistory ? `${CHAT_SECTION_WEIGHT} 1 0%` : '0 0 auto' }}>
+            <div className="flex-none px-6 pt-3 pb-1" style={{ color: colors.darkGrey }}>
               <div
                 className="flex items-center justify-between text-[12px] font-medium cursor-pointer"
                 onClick={() => vm.setShowChatHistory(!vm.showChatHistory)}
@@ -186,7 +254,7 @@ export const ChatbotSidebar = ({ vm }) => {
                 </span>
               </div>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-6 pb-4">
+            <div ref={chatScrollRef} className="relative flex-1 min-h-0 overflow-y-auto hide-scrollbar px-6 pb-3">
               {vm.showChatHistory && (
                 <div className="space-y-2">
                   {vm.chats
@@ -250,11 +318,14 @@ export const ChatbotSidebar = ({ vm }) => {
                     ))}
                 </div>
               )}
+              {scrollEndFeedback.chat && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white to-transparent" />
+              )}
             </div>
           </section>
 
-          <section className="flex flex-col min-h-0 overflow-hidden" style={{ flex: `0 0 ${FOLDER_SECTION_HEIGHT}` }}>
-            <div className="flex-none px-6 pt-5 pb-3" style={{ color: colors.darkGrey }}>
+          <section className="flex flex-col min-h-0 overflow-hidden" style={{ flex: vm.showFolders ? `${FOLDER_SECTION_WEIGHT} 1 0%` : '0 0 auto' }}>
+            <div className="flex-none px-6 pt-3 pb-1" style={{ color: colors.darkGrey }}>
               <div
                 className="flex items-center justify-between text-[12px] font-medium cursor-pointer"
                 onClick={() => vm.setShowFolders(!vm.showFolders)}
@@ -269,15 +340,15 @@ export const ChatbotSidebar = ({ vm }) => {
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-6 pb-4">
-              {lawLimitWarning && (
-                <div className="mb-2 rounded-md bg-red-100 text-red-700 text-[11px] px-3 py-2">
-                  {t('sidebar.law_limit_warning', { max: MAX_LAWS })}
-                </div>
-              )}
-
+            <div ref={folderScrollRef} className="relative flex-1 min-h-0 overflow-y-auto hide-scrollbar px-6 pb-3">
               {vm.showFolders && (
                 <div className="space-y-2">
+                  {lawLimitWarning && (
+                    <div className="rounded-md bg-red-100 text-red-700 text-[11px] px-3 py-2">
+                      {t('sidebar.law_limit_warning', { max: MAX_LAWS })}
+                    </div>
+                  )}
+
                   <button type="button"
                     className="flex items-center gap-2 text-[10px] font-medium"
                     style={{ color: colors.darkGrey }}
@@ -422,11 +493,14 @@ export const ChatbotSidebar = ({ vm }) => {
                   ))}
                 </div>
               )}
+              {scrollEndFeedback.folders && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white to-transparent" />
+              )}
             </div>
           </section>
 
-          <section className="flex flex-col min-h-0 overflow-hidden" style={{ flex: `0 0 ${LAW_SECTION_HEIGHT}` }}>
-            <div className="flex-none px-6 pt-5 pb-3" style={{ color: colors.darkGrey }}>
+          <section className="flex flex-col min-h-0 overflow-hidden" style={{ flex: vm.showLawSource ? `${LAW_SECTION_WEIGHT} 1 0%` : '0 0 auto' }}>
+            <div className="flex-none px-6 pt-3 pb-1" style={{ color: colors.darkGrey }}>
               <div
                 className="flex items-center justify-between text-[12px] font-medium cursor-pointer"
                 onClick={() => vm.setShowLawSource(!vm.showLawSource)}
@@ -441,7 +515,7 @@ export const ChatbotSidebar = ({ vm }) => {
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-6 pb-4">
+            <div ref={lawScrollRef} className="relative flex-1 min-h-0 overflow-y-auto hide-scrollbar px-6 pb-3">
               {vm.showLawSource && (
                 <div className="space-y-6">
                   {lawCategories.map(category => {
@@ -503,12 +577,15 @@ export const ChatbotSidebar = ({ vm }) => {
                   })}
                 </div>
               )}
+                {scrollEndFeedback.laws && (
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white to-transparent" />
+                )}
             </div>
           </section>
         </div>
       </div>
 
-      <div className="flex-none px-6 py-4 border-t" style={{ borderColor: colors.grey }}>
+      <div className="flex-none px-6 py-3" style={{ borderColor: colors.grey }}>
         <input type="text" placeholder={t('sidebar.search_placeholder')}
           value={vm.chatSearch} onChange={e => vm.setChatSearch(e.target.value)}
           className="w-full h-[30px] px-3 text-[12px] border rounded-full"

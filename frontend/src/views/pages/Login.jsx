@@ -24,7 +24,7 @@ export const Login = ({ authViewModel }) => {
 
   useEffect(() => {
     if (authViewModel.isAuthenticated) {
-      navigate('/settings');
+      navigate('/chatbot');
     }
   }, [authViewModel.isAuthenticated]);
 
@@ -41,10 +41,7 @@ export const Login = ({ authViewModel }) => {
     if (result.success) {
       setShowSuccess(true);
       loginForm.resetForm();
-
-      setTimeout(() => {
-        navigate('/chatbot');
-      }, 1500);
+      navigate('/chatbot');
     }
   };
 
@@ -53,10 +50,7 @@ export const Login = ({ authViewModel }) => {
 
     if (result.success) {
       setShowSuccess(true);
-
-      setTimeout(() => {
-        navigate("/chatbot");
-      }, 1500);
+      navigate('/chatbot');
     }
   };
 
