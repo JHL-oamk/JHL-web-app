@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Folder, History, Scale } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Folder, History, Scale, Search } from 'lucide-react';
 import colors from '../../config/colors';
 import { useTranslation } from 'react-i18next';
 
@@ -7,9 +7,6 @@ export const ChatbotSidebar = ({ vm }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.startsWith('fi') ? 'fi' : 'en';
   const sidebarRef = useRef(null);
-  const chatScrollRef = useRef(null);
-  const folderScrollRef = useRef(null);
-  const lawScrollRef = useRef(null);
   const [openLawLink, setOpenLawLink] = useState(null);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -25,11 +22,7 @@ export const ChatbotSidebar = ({ vm }) => {
   const [editingFolderName, setEditingFolderName] = useState('');
   const [collapsedCategoryIds, setCollapsedCategoryIds] = useState([]);
   const [lawLimitWarning, setLawLimitWarning] = useState(false);
-  const [scrollEndFeedback, setScrollEndFeedback] = useState({
-    chat: false,
-    folders: false,
-    laws: false,
-  });
+  const [lawSearch, setLawSearch] = useState('');
 
   const MAX_LAWS = 3;
   const CHAT_SECTION_WEIGHT = 25;
@@ -57,21 +50,39 @@ export const ChatbotSidebar = ({ vm }) => {
     }, {})
   );
 
+  const filteredLawCategories = useMemo(() => {
+    const query = lawSearch.trim().toLowerCase();
+    if (!query) return lawCategories;
+
+    return lawCategories
+      .map((category) => {
+        const categoryMatch = [category.name, category.name_fi, category.name_en]
+          .filter(Boolean)
+          .some(value => value.toLowerCase().includes(query));
+
+        const matchingSources = category.sources.filter((law) => {
+          const haystack = [
+            law.name,
+            law.name_fi,
+            law.name_en,
+            law.link,
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+
+          return categoryMatch || haystack.includes(query);
+        });
+
+        return { ...category, sources: matchingSources };
+      })
+      .filter(category => category.sources.length > 0);
+  }, [lawSearch, lawCategories]);
+
   const handleClearDropdowns = () => {
     setOpenMenu(null);
     setOpenAddToFolderChatId(null);
     setOpenFolderColorId(null);
-  };
-
-  const updateScrollEndFeedback = (key, element) => {
-    if (!element) return;
-    const hasOverflow = element.scrollHeight > element.clientHeight + 2;
-    const isAtBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 2;
-    const shouldShow = hasOverflow && !isAtBottom;
-
-    setScrollEndFeedback(prev => (
-      prev[key] === shouldShow ? prev : { ...prev, [key]: shouldShow }
-    ));
   };
 
   useEffect(() => {
@@ -87,55 +98,6 @@ export const ChatbotSidebar = ({ vm }) => {
     document.addEventListener('click', handleDocumentClick);
     return () => document.removeEventListener('click', handleDocumentClick);
   }, []);
-
-  useEffect(() => {
-    const elements = [
-      { key: 'chat', ref: chatScrollRef },
-      { key: 'folders', ref: folderScrollRef },
-      { key: 'laws', ref: lawScrollRef },
-    ];
-
-    const handlers = [];
-
-    elements.forEach(({ key, ref }) => {
-      const element = ref.current;
-      if (!element) return;
-
-      const handler = () => updateScrollEndFeedback(key, element);
-      handlers.push({ element, handler });
-      handler();
-      element.addEventListener('scroll', handler, { passive: true });
-    });
-
-    return () => {
-      handlers.forEach(({ element, handler }) => {
-        element.removeEventListener('scroll', handler);
-      });
-    };
-  }, []);
-
-  useEffect(() => {
-    const rafId = window.requestAnimationFrame(() => {
-      updateScrollEndFeedback('chat', chatScrollRef.current);
-      updateScrollEndFeedback('folders', folderScrollRef.current);
-      updateScrollEndFeedback('laws', lawScrollRef.current);
-    });
-
-    return () => window.cancelAnimationFrame(rafId);
-  }, [
-    vm.chats.length,
-    vm.folders.length,
-    vm.showChatHistory,
-    vm.showFolders,
-    vm.showLawSource,
-    collapsedCategoryIds.join(','),
-    showCreateFolder,
-    editingFolderId,
-    openAddToFolderChatId,
-    openMenu?.type,
-    vm.openFolderId,
-    vm.chatSearch,
-  ]);
 
   const handleCategoryToggle = (category) => {
     const categoryIds = category.sources.map(s => s.id);
@@ -254,7 +216,7 @@ export const ChatbotSidebar = ({ vm }) => {
                 </span>
               </div>
             </div>
-            <div ref={chatScrollRef} className="relative flex-1 min-h-0 overflow-y-auto hide-scrollbar px-6 pb-3">
+            <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-6 pb-3">
               {vm.showChatHistory && (
                 <div className="space-y-2">
                   {vm.chats
@@ -318,9 +280,6 @@ export const ChatbotSidebar = ({ vm }) => {
                     ))}
                 </div>
               )}
-              {scrollEndFeedback.chat && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white to-transparent" />
-              )}
             </div>
           </section>
 
@@ -340,7 +299,7 @@ export const ChatbotSidebar = ({ vm }) => {
               </div>
             </div>
 
-            <div ref={folderScrollRef} className="relative flex-1 min-h-0 overflow-y-auto hide-scrollbar px-6 pb-3">
+            <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-6 pb-3">
               {vm.showFolders && (
                 <div className="space-y-2">
                   {lawLimitWarning && (
@@ -493,9 +452,6 @@ export const ChatbotSidebar = ({ vm }) => {
                   ))}
                 </div>
               )}
-              {scrollEndFeedback.folders && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white to-transparent" />
-              )}
             </div>
           </section>
 
@@ -515,10 +471,21 @@ export const ChatbotSidebar = ({ vm }) => {
               </div>
             </div>
 
-            <div ref={lawScrollRef} className="relative flex-1 min-h-0 overflow-y-auto hide-scrollbar px-6 pb-3">
+            <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar px-6 pb-3">
               {vm.showLawSource && (
-                <div className="space-y-6">
-                  {lawCategories.map(category => {
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 rounded-full bg-[#F2F2F2] px-3 h-[32px]">
+                    <Search size={15} className="text-[#7D7D7D] shrink-0" />
+                    <input
+                      type="text"
+                      value={lawSearch}
+                      onChange={(e) => setLawSearch(e.target.value)}
+                      placeholder="Search sources..."
+                      className="w-full bg-transparent text-[12px] outline-none placeholder:text-[#7D7D7D]"
+                    />
+                  </div>
+
+                  {filteredLawCategories.map(category => {
                     const categoryIds = category.sources.map(s => s.id);
                     const isCategorySelected = categoryIds.every(id => vm.selectedLaws.includes(id));
                     const isCollapsed = collapsedCategoryIds.includes(category.id);
@@ -577,19 +544,19 @@ export const ChatbotSidebar = ({ vm }) => {
                   })}
                 </div>
               )}
-                {scrollEndFeedback.laws && (
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white to-transparent" />
-                )}
             </div>
           </section>
         </div>
       </div>
 
-      <div className="flex-none px-6 py-3" style={{ borderColor: colors.grey }}>
-        <input type="text" placeholder={t('sidebar.search_placeholder')}
-          value={vm.chatSearch} onChange={e => vm.setChatSearch(e.target.value)}
-          className="w-full h-[30px] px-3 text-[12px] border rounded-full"
-          style={{ borderColor: colors.grey }} />
+      <div className="relative flex-none px-6 pt-2 pb-3" style={{ borderColor: colors.grey }}>
+        <div className="pointer-events-none absolute inset-x-6 top-0 h-6 bg-gradient-to-b from-white via-white/20 to-transparent" />
+        <div className="relative z-10 flex items-center gap-2 rounded-full bg-[#F2F2F2] px-3 h-[32px]">
+          <Search size={15} className="text-[#7D7D7D] shrink-0" />
+          <input type="text" placeholder={t('sidebar.search_placeholder')}
+            value={vm.chatSearch} onChange={e => vm.setChatSearch(e.target.value)}
+            className="w-full bg-transparent text-[12px] outline-none placeholder:text-[#7D7D7D]" />
+        </div>
       </div>
     </aside>
   );
