@@ -1,7 +1,48 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Folder, History, Scale, Search } from 'lucide-react';
 import colors from '../../config/colors';
 import { useTranslation } from 'react-i18next';
+
+const PortalPopover = ({ anchorEl, open, width, className = '', children }) => {
+  const [position, setPosition] = useState(null);
+
+  useEffect(() => {
+    if (!open || !anchorEl || typeof window === 'undefined') {
+      setPosition(null);
+      return undefined;
+    }
+
+    const updatePosition = () => {
+      const rect = anchorEl.getBoundingClientRect();
+      const left = Math.max(8, Math.min(window.innerWidth - width - 8, rect.right - width));
+      const top = rect.bottom + 4;
+      setPosition({ left, top });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [anchorEl, open, width]);
+
+  if (!open || !position) return null;
+
+  return createPortal(
+    <div
+      className={`fixed z-[99999] ${className}`}
+      style={{ top: position.top, left: position.left, width }}
+      data-dropdown-interactive="true"
+    >
+      {children}
+    </div>,
+    document.body
+  );
+};
 
 export const ChatbotSidebar = ({ vm }) => {
   const { t, i18n } = useTranslation();
@@ -23,6 +64,10 @@ export const ChatbotSidebar = ({ vm }) => {
   const [collapsedCategoryIds, setCollapsedCategoryIds] = useState([]);
   const [lawLimitWarning, setLawLimitWarning] = useState(false);
   const [lawSearch, setLawSearch] = useState('');
+  const chatMenuTriggerRefs = useRef({});
+  const folderMenuTriggerRefs = useRef({});
+  const folderColorTriggerRefs = useRef({});
+  const folderChatMenuTriggerRefs = useRef({});
 
   const MAX_LAWS = 3;
   const CHAT_SECTION_WEIGHT = 25;
@@ -231,6 +276,10 @@ export const ChatbotSidebar = ({ vm }) => {
                             {chat.title}
                           </button>
                           <button
+                            ref={(el) => {
+                              if (el) chatMenuTriggerRefs.current[chat.id] = el;
+                              else delete chatMenuTriggerRefs.current[chat.id];
+                            }}
                             onClick={() =>
                               setOpenMenu(openMenu?.type === 'chat' && openMenu?.id === chat.id
                                 ? null : { type: 'chat', id: chat.id })
@@ -240,17 +289,26 @@ export const ChatbotSidebar = ({ vm }) => {
                             …
                           </button>
 
-                          {openMenu?.type === 'chat' && openMenu?.id === chat.id && (
-                            <div className="absolute right-0 top-5 z-10" data-dropdown-interactive="true">
-                              <div className="relative w-36 bg-white border border-gray-200 shadow-md text-[11px]">
+                          <PortalPopover
+                            anchorEl={chatMenuTriggerRefs.current[chat.id]}
+                            open={openMenu?.type === 'chat' && openMenu?.id === chat.id}
+                            width={144}
+                            className="pointer-events-auto"
+                          >
+                            <div className="relative w-36 bg-white border border-gray-200 shadow-md text-[11px]">
+                              <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
+                                onClick={() => vm.handleShareChat(chat.id)}>{t('sidebar.share')}</button>
+                              {chat.folderId !== null && (
                                 <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
-                                  onClick={() => vm.handleShareChat(chat.id)}>{t('sidebar.share')}</button>
+                                  onClick={() => handleRemoveFromFolder(chat.id)}>{t('sidebar.remove_from_folder')}</button>
+                              )}
+                              <div className="relative">
                                 <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
                                   onClick={() => setOpenAddToFolderChatId(
                                     openAddToFolderChatId === chat.id ? null : chat.id
                                   )}>{t('sidebar.add_to_folder')}</button>
                                 {openAddToFolderChatId === chat.id && (
-                                  <div className="absolute left-0 top-full mt-1 w-40 bg-white border border-gray-200 shadow-md z-20"
+                                  <div className="absolute left-full top-0 ml-1 w-40 bg-white border border-gray-200 shadow-md z-20"
                                     data-dropdown-interactive="true">
                                     {vm.folders.length === 0 && (
                                       <p className="px-3 py-2 text-[10px]" style={{ color: colors.darkGrey }}>{t('sidebar.no_folders')}</p>
@@ -266,15 +324,11 @@ export const ChatbotSidebar = ({ vm }) => {
                                     ))}
                                   </div>
                                 )}
-                                <button className="w-full text-left px-3 py-2 hover:bg-gray-100 text-red-600"
-                                  onClick={() => handleDeleteChat(chat.id)}>{t('sidebar.delete')}</button>
-                                {chat.folderId !== null && (
-                                  <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
-                                    onClick={() => handleRemoveFromFolder(chat.id)}>{t('sidebar.remove_from_folder')}</button>
-                                )}
                               </div>
+                              <button className="w-full text-left px-3 py-2 hover:bg-gray-100 text-red-600"
+                                onClick={() => handleDeleteChat(chat.id)}>{t('sidebar.delete')}</button>
                             </div>
-                          )}
+                          </PortalPopover>
                         </div>
                       </div>
                     ))}
@@ -325,10 +379,18 @@ export const ChatbotSidebar = ({ vm }) => {
                         style={{ borderColor: colors.grey }} />
                       <div className="mt-2 flex items-center gap-2">
                         {folderColors.map(color => (
-                          <button key={color} type="button" className="h-4 w-4 rounded-full"
-                            style={{ backgroundColor: color,
-                              boxShadow: newFolderColor === color ? `0 0 0 2px ${colors.black}` : 'none' }}
-                            onClick={() => setNewFolderColor(color)} />
+                          <button key={color} type="button" className="h-4 w-4 rounded-full flex items-center justify-center"
+                            onClick={() => setNewFolderColor(color)}
+                            style={{
+                              backgroundColor: color,
+                              transform: newFolderColor === color ? 'scale(1.08)' : 'none',
+                              boxShadow: newFolderColor === color ? `0 4px 10px ${colors.primary}33` : 'none',
+                              transition: 'transform 120ms ease, box-shadow 120ms ease'
+                            }}>
+                            {newFolderColor === color && (
+                              <span style={{ color: '#fff', fontSize: 10, lineHeight: 1 }}>✓</span>
+                            )}
+                          </button>
                         ))}
                       </div>
                       <div className="mt-2 flex justify-end">
@@ -345,6 +407,10 @@ export const ChatbotSidebar = ({ vm }) => {
                       <div className="group flex items-center justify-between">
                         <div className="flex items-center gap-2 flex-1">
                           <button type="button" className="h-3 w-3 rounded-full"
+                            ref={(el) => {
+                              if (el) folderColorTriggerRefs.current[folder.id] = el;
+                              else delete folderColorTriggerRefs.current[folder.id];
+                            }}
                             style={{ backgroundColor: folder.color || colors.grey }}
                             onClick={() => setOpenFolderColorId(
                               openFolderColorId === folder.id ? null : folder.id
@@ -357,6 +423,10 @@ export const ChatbotSidebar = ({ vm }) => {
                           </button>
                         </div>
                         <button
+                          ref={(el) => {
+                            if (el) folderMenuTriggerRefs.current[folder.id] = el;
+                            else delete folderMenuTriggerRefs.current[folder.id];
+                          }}
                           onClick={() => setOpenMenu(
                             openMenu?.type === 'folder' && openMenu?.id === folder.id
                               ? null : { type: 'folder', id: folder.id }
@@ -364,31 +434,47 @@ export const ChatbotSidebar = ({ vm }) => {
                           className="text-[12px] px-2 opacity-0 group-hover:opacity-100">…</button>
                       </div>
 
-                      {openFolderColorId === folder.id && (
-                        <div className="absolute right-0 mt-1 flex items-center gap-2 rounded-md border bg-white px-2 py-1 shadow-sm z-10"
+                      <PortalPopover
+                        anchorEl={folderColorTriggerRefs.current[folder.id]}
+                        open={openFolderColorId === folder.id}
+                        width={176}
+                        className="pointer-events-auto"
+                      >
+                        <div className="flex items-center gap-2 rounded-md border bg-white px-2 py-1 shadow-sm"
                           style={{ borderColor: colors.grey }}
                           data-dropdown-interactive="true">
                           {folderColors.map(color => (
-                            <button key={color} type="button" className="h-4 w-4 rounded-full"
-                              style={{ backgroundColor: color,
-                                boxShadow: folder.color === color ? `0 0 0 2px ${colors.black}` : 'none' }}
-                              onClick={() => handleFolderColorChange(folder.id, color)} />
+                            <button key={color} type="button" className="h-4 w-4 rounded-full flex items-center justify-center"
+                              onClick={() => handleFolderColorChange(folder.id, color)}
+                              style={{
+                                backgroundColor: color,
+                                transform: folder.color === color ? 'scale(1.06)' : 'none',
+                                boxShadow: folder.color === color ? `0 4px 10px ${colors.primary}33` : 'none',
+                                transition: 'transform 120ms ease, box-shadow 120ms ease'
+                              }}>
+                              {folder.color === color && (
+                                <span style={{ color: '#fff', fontSize: 10, lineHeight: 1 }}>✓</span>
+                              )}
+                            </button>
                           ))}
                         </div>
-                      )}
+                      </PortalPopover>
 
-                      {openMenu?.type === 'folder' && openMenu?.id === folder.id && (
-                        <div className="absolute right-2 top-4 z-10" data-dropdown-interactive="true">
-                          <div className="w-36 bg-white border border-gray-200 shadow-md text-[11px]">
-                            <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
-                              onClick={() => handleShareFolder(folder.id)}>{t('sidebar.share')}</button>
-                            <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
-                              onClick={() => handleEditFolder(folder.id)}>{t('sidebar.edit')}</button>
-                            <button className="w-full text-left px-3 py-2 hover:bg-gray-100 text-red-600"
-                              onClick={() => handleDeleteFolder(folder.id)}>{t('sidebar.delete')}</button>
-                          </div>
+                      <PortalPopover
+                        anchorEl={folderMenuTriggerRefs.current[folder.id]}
+                        open={openMenu?.type === 'folder' && openMenu?.id === folder.id}
+                        width={144}
+                        className="pointer-events-auto"
+                      >
+                        <div className="w-36 bg-white border border-gray-200 shadow-md text-[11px]" data-dropdown-interactive="true">
+                          <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
+                            onClick={() => handleShareFolder(folder.id)}>{t('sidebar.share')}</button>
+                          <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
+                            onClick={() => handleEditFolder(folder.id)}>{t('sidebar.edit')}</button>
+                          <button className="w-full text-left px-3 py-2 hover:bg-gray-100 text-red-600"
+                            onClick={() => handleDeleteFolder(folder.id)}>{t('sidebar.delete')}</button>
                         </div>
-                      )}
+                      </PortalPopover>
 
                       {editingFolderId === folder.id && (
                         <div className="mt-2 rounded-md border px-3 py-2" style={{ borderColor: colors.grey }}>
@@ -422,24 +508,31 @@ export const ChatbotSidebar = ({ vm }) => {
                                   {chat.title}
                                 </button>
                                 <button
+                                  ref={(el) => {
+                                    if (el) folderChatMenuTriggerRefs.current[chat.id] = el;
+                                    else delete folderChatMenuTriggerRefs.current[chat.id];
+                                  }}
                                   onClick={() => setOpenMenu(
                                     openMenu?.type === 'folderChat' && openMenu?.id === chat.id
                                       ? null : { type: 'folderChat', id: chat.id }
                                   )}
                                   className="text-[12px] px-2 opacity-0 group-hover:opacity-100">…</button>
 
-                                {openMenu?.type === 'folderChat' && openMenu?.id === chat.id && (
-                                  <div className="absolute right-0 top-5 z-10" data-dropdown-interactive="true">
-                                    <div className="w-36 bg-white border border-gray-200 shadow-md text-[11px]">
-                                      <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
-                                        onClick={() => vm.handleShareChat(chat.id)}>{t('sidebar.share')}</button>
-                                      <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
-                                        onClick={() => handleRemoveFromFolder(chat.id)}>{t('sidebar.remove_from_folder')}</button>
-                                      <button className="w-full text-left px-3 py-2 hover:bg-gray-100 text-red-600"
-                                        onClick={() => handleDeleteChat(chat.id)}>{t('sidebar.delete')}</button>
-                                    </div>
+                                <PortalPopover
+                                  anchorEl={folderChatMenuTriggerRefs.current[chat.id]}
+                                  open={openMenu?.type === 'folderChat' && openMenu?.id === chat.id}
+                                  width={144}
+                                  className="pointer-events-auto"
+                                >
+                                  <div className="w-36 bg-white border border-gray-200 shadow-md text-[11px]" data-dropdown-interactive="true">
+                                    <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
+                                      onClick={() => vm.handleShareChat(chat.id)}>{t('sidebar.share')}</button>
+                                    <button className="w-full text-left px-3 py-2 hover:bg-gray-100"
+                                      onClick={() => handleRemoveFromFolder(chat.id)}>{t('sidebar.remove_from_folder')}</button>
+                                    <button className="w-full text-left px-3 py-2 hover:bg-gray-100 text-red-600"
+                                      onClick={() => handleDeleteChat(chat.id)}>{t('sidebar.delete')}</button>
                                   </div>
-                                )}
+                                </PortalPopover>
                               </div>
                             </div>
                           ))}
