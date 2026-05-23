@@ -81,7 +81,8 @@
     "source_title_placeholder": "Source title",
     "source_url": "Source:",
     "source_url_placeholder": "Paste source link here...",
-    "upload_file": "Upload file"
+    "upload_file": "Upload file",
+    "disclaimer": "*Please do not upload documents containing sensitive or confidential information."
   },
   "chatbot": {
     "title": "Legal Chatbot",
@@ -95,7 +96,7 @@
     "sources_label": "sources",
     "placeholder": "Write your question here...",
     "send": "Send",
-    "disclaimer": "*AI may make mistakes, always check the law sources yourself."
+    "disclaimer": "*AI can make mistakes, so please verify the law sources yourself."
   },
   "sidebar": {
     "new_chat": "Start New Chat",

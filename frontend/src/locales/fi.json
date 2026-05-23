@@ -81,7 +81,8 @@
     "source_title_placeholder": "Lähteen otsikko",
     "source_url": "Lähde:",
     "source_url_placeholder": "Liitä lähteen linkki tähän...",
-    "upload_file": "Lataa tiedosto"
+    "upload_file": "Lataa tiedosto",
+    "disclaimer": "*Älä lataa asiakirjoja, jotka sisältävät arkaluonteisia tai luottamuksellisia tietoja."
   },
   "chatbot": {
     "title": "Lakiavustaja",
@@ -95,7 +96,7 @@
     "sources_label": "lähdettä",
     "placeholder": "Kirjoita kysymyksesi tähän...",
     "send": "Lähetä",
-    "disclaimer": "*Tekoäly voi tehdä virheitä, tarkista aina lakitiedot itse."
+    "disclaimer": "*Tekoäly voi tehdä virheitä, joten tarkista lakilähteet aina itse."
   },
   "sidebar": {
     "new_chat": "Uusi keskustelu",
