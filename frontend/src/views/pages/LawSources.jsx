@@ -414,86 +414,100 @@ export const LawSources = ({ authViewModel }) => {
                         )}
 
                         {draft?.open && (
-                          <div
-                            ref={(node) => {
-                              if (node) sourceDraftRefs.current[category.id] = node;
-                              else delete sourceDraftRefs.current[category.id];
-                            }}
-                            className="mt-2 rounded-2xl px-8 py-4 max-w-[760px]"
-                            style={{ backgroundColor: colors.lightGrey }}
-                          >
-                            {(() => {
-                              const hasFile = Boolean(draft.fileName);
-                              const hasLink = Boolean(draft.url?.trim());
-                              const isUploading = Boolean(uploadingFiles[category.id]);
-                              return (
-                                <>
-                                  <div className="flex items-center gap-5">
-                                    <span className="text-xs w-[72px]" style={{ color: colors.darkGrey }}>{t('law_sources.source_title')}</span>
-                                    <input
-                                      value={draft.title}
-                                      onChange={(event) => handleSourceDraftChange(category.id, 'title', event.target.value)}
-                                      placeholder={t('law_sources.source_title_placeholder')}
-                                      className="flex-1 rounded-full px-4 py-2 text-xs outline-none"
-                                      style={{ backgroundColor: colors.white, color: colors.black }}
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => handleAddSource(category.id)}
-                                      disabled={isUploading}
-                                      className="text-xs rounded-full px-4 py-2"
-                                      style={{ backgroundColor: colors.darkGrey, color: colors.white, opacity: isUploading ? 0.6 : 1 }}
-                                    >
-                                      {isUploading ? 'Uploading…' : t('law_sources.add')}
-                                    </button>
-                                  </div>
-                                  {uploadErrors[category.id] && (
-                                    <div className="mt-2 text-xs" style={{ color: '#c53030' }}>
-                                      {uploadErrors[category.id]}
+                          <>
+                            <div
+                              ref={(node) => {
+                                if (node) sourceDraftRefs.current[category.id] = node;
+                                else delete sourceDraftRefs.current[category.id];
+                              }}
+                              className="mt-2 rounded-2xl px-8 py-4 max-w-[760px]"
+                              style={{ backgroundColor: colors.lightGrey }}
+                            >
+                              {(() => {
+                                const hasFile = Boolean(draft.fileName);
+                                const hasLink = Boolean(draft.url?.trim());
+                                const isUploading = Boolean(uploadingFiles[category.id]);
+                                return (
+                                  <>
+                                    <div className="flex items-center gap-5">
+                                      <span className="text-xs w-[72px]" style={{ color: colors.darkGrey }}>{t('law_sources.source_title')}</span>
+                                      <input
+                                        value={draft.title}
+                                        onChange={(event) => handleSourceDraftChange(category.id, 'title', event.target.value)}
+                                        placeholder={t('law_sources.source_title_placeholder')}
+                                        className="flex-1 rounded-full px-4 py-2 text-xs outline-none"
+                                        style={{ backgroundColor: colors.white, color: colors.black }}
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAddSource(category.id)}
+                                        disabled={isUploading}
+                                        className="text-xs rounded-full px-4 py-2"
+                                        style={{ backgroundColor: colors.darkGrey, color: colors.white, opacity: isUploading ? 0.6 : 1 }}
+                                      >
+                                        {isUploading ? 'Uploading…' : t('law_sources.add')}
+                                      </button>
                                     </div>
-                                  )}
-                                  <div className="my-3 border-b" style={{ borderColor: colors.grey }} />
-                                  <div className="flex items-center gap-5">
-                                    <span className="text-xs w-[72px]" style={{ color: colors.darkGrey }}>{t('law_sources.source_url')}</span>
-                                    {hasFile ? (
-                                      <>
-                                        <a href={draft.fileUrl} target="_blank" rel="noreferrer" className="text-xs underline" style={{ color: colors.link }}>
-                                          {draft.fileName}
-                                        </a>
-                                        <button type="button" onClick={() => handleClearFile(category.id)} className="text-xs" style={{ color: colors.darkGrey }}>
-                                          ✕
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <input
-                                          value={draft.url}
-                                          onChange={(event) => handleSourceDraftChange(category.id, 'url', event.target.value)}
-                                          placeholder={t('law_sources.source_url_placeholder')}
-                                          className="flex-1 rounded-full px-4 py-2 text-xs outline-none"
-                                          style={{ backgroundColor: colors.white, color: colors.black }}
-                                        />
-                                        {!hasLink && (
-                                          <label
-                                            className="text-xs rounded-full px-6 py-2 cursor-pointer"
-                                            style={{ backgroundColor: colors.grey, color: colors.darkGrey }}
-                                          >
-                                            {t('law_sources.upload_file')}
-                                            <input
-                                              type="file"
-                                              accept="application/pdf"
-                                              className="hidden"
-                                              onChange={(event) => handleFileSelect(category.id, event.target.files?.[0])}
-                                            />
-                                          </label>
-                                        )}
-                                      </>
+                                    {uploadErrors[category.id] && (
+                                      <div className="mt-2 text-xs" style={{ color: '#c53030' }}>
+                                        {uploadErrors[category.id]}
+                                      </div>
                                     )}
-                                  </div>
-                                </>
-                              );
-                            })()}
-                          </div>
+                                    <div className="my-3 border-b" style={{ borderColor: colors.grey }} />
+                                    <div className="flex items-center gap-5">
+                                      <span className="text-xs w-[72px]" style={{ color: colors.darkGrey }}>{t('law_sources.source_url')}</span>
+                                      {hasFile ? (
+                                        <>
+                                          <a href={draft.fileUrl} target="_blank" rel="noreferrer" className="text-xs underline" style={{ color: colors.link }}>
+                                            {draft.fileName}
+                                          </a>
+                                          <button type="button" onClick={() => handleClearFile(category.id)} className="text-xs" style={{ color: colors.darkGrey }}>
+                                            ✕
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <input
+                                            value={draft.url}
+                                            onChange={(event) => handleSourceDraftChange(category.id, 'url', event.target.value)}
+                                            placeholder={t('law_sources.source_url_placeholder')}
+                                            className="flex-1 rounded-full px-4 py-2 text-xs outline-none"
+                                            style={{ backgroundColor: colors.white, color: colors.black }}
+                                          />
+                                          {!hasLink && (
+                                            <label
+                                              className="text-xs rounded-full px-6 py-2 cursor-pointer"
+                                              style={{ backgroundColor: colors.grey, color: colors.darkGrey }}
+                                            >
+                                              {t('law_sources.upload_file')}
+                                              <input
+                                                type="file"
+                                                accept="application/pdf"
+                                                className="hidden"
+                                                onChange={(event) => handleFileSelect(category.id, event.target.files?.[0])}
+                                              />
+                                            </label>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  </>
+                                );
+                              })()}
+                            </div>
+
+                            <div className="mt-3 w-full max-w-[760px] mx-auto">
+                              <div className="grid grid-cols-[auto_1fr_auto] items-center">
+                                <div className="w-[72px]" />
+                                <div className="flex justify-center">
+                                  <p className="text-[11px] italic text-center whitespace-nowrap truncate" style={{ color: '#c53030' }}>
+                                    {t('law_sources.disclaimer')}
+                                  </p>
+                                </div>
+                                <div />
+                              </div>
+                            </div>
+                          </>
                         )}
                       </div>
                     )}
@@ -502,6 +516,7 @@ export const LawSources = ({ authViewModel }) => {
               </div>
             );
           })}
+          
         </div>
       </div>
     </div>

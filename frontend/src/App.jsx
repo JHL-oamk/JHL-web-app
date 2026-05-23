@@ -78,7 +78,7 @@ useInactivityLogout(authViewModel.isAuthenticated);
         path="/"
         element={
           authViewModel.isAuthenticated ? (
-            <Navigate to="/settings" replace />
+            <Navigate to="/chatbot" replace />
           ) : (
             <Navigate to="/login" replace />
           )
