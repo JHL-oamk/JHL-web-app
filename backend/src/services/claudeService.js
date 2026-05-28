@@ -73,4 +73,78 @@ const askClaude = async (question, selectedLaws = []) => {
   return message.content[0].text;
 };
 
-module.exports = { askClaude };
+const generateApiContext = async (documentText, title = '', url = '', category = 'Other Documents') => {
+  const summaryPrompt = title ? `Document title: ${title}\n\n` : '';
+
+  const message = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 1000,
+    system: `
+You are a legal document analysis assistant.
+
+Your task:
+1. Detect the document language using ISO language codes (examples: "fi", "en").
+2. Create a concise api_context summary for chatbot usage.
+
+Rules:
+- Keep the summary factual and concise.
+- Focus on the document's purpose, obligations, and key themes.
+- Do not invent facts.
+- Return ONLY valid JSON.
+
+Response format:
+{
+  "language": "fi",
+  "api_context": "Short summary here"
+}
+`,
+    messages: [
+      {
+        role: 'user',
+        content: `${summaryPrompt}Analyze the following document:\n\n${documentText}`,
+      },
+    ],
+  });
+
+  const rawText = message?.content?.[0]?.text || '{}';
+
+  let parsed;
+
+  try {
+    parsed = JSON.parse(rawText);
+  } catch (error) {
+    parsed = {
+      language: 'unknown',
+      api_context: '',
+    };
+  }
+    // Ensure api_context contains a non-empty summary; fallback to a short excerpt
+    let apiContextText = '';
+    if (parsed && typeof parsed.api_context === 'string' && parsed.api_context.trim()) {
+      apiContextText = parsed.api_context.trim();
+    } else if (parsed && parsed.api_context && typeof parsed.api_context.text === 'string' && parsed.api_context.text.trim()) {
+      apiContextText = parsed.api_context.text.trim();
+    } else if (documentText && documentText.length > 0) {
+      // fallback: take first 1000 characters and trim to sentence
+      apiContextText = documentText.slice(0, 1000).replace(/\s+/g, ' ').trim();
+      const lastPeriod = apiContextText.lastIndexOf('.');
+      if (lastPeriod > 200) apiContextText = apiContextText.slice(0, lastPeriod + 1);
+    }
+
+    // Use language from Claude when provided; treat 'unknown' as missing and default to 'fi'
+    let language = (parsed && parsed.language);
+    if (!language || language === 'unknown') language = 'fi';
+
+    return {
+      active: true,
+      api_context: apiContextText,
+      category: category || 'Other Documents',
+      content: documentText?.slice(0, 150000) || '',
+      language: language || 'unknown',
+      title: title || 'User Provided Title',
+      type: 'law',
+      url: url || '',
+    };
+};
+
+module.exports = { askClaude, generateApiContext };

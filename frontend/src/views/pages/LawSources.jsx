@@ -246,16 +246,17 @@ export const LawSources = ({ authViewModel }) => {
     if (!url && !file) return;
 
     let sourceUrl = url;
+    let uploadResult = null;
     try {
       setUploadErrors((prev) => ({ ...prev, [categoryId]: '' }));
       if (file) {
         setUploadingFiles((prev) => ({ ...prev, [categoryId]: true }));
-        const uploadResult = await uploadLawSourceFileApi(file);
+        uploadResult = await uploadLawSourceFileApi(file);
         sourceUrl = uploadResult.fileUrl;
       }
 
       const source = {
-        id: Date.now(),
+        id: file ? uploadResult.id || Date.now().toString() : Date.now(),
         type: url ? 'link' : 'file',
         title: title || draft.fileName,
         title_en: title || draft.fileName,
