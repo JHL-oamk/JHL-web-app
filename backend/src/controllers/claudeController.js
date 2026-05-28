@@ -21,22 +21,30 @@ const claudeController = async (req, res) => {
     let lawTexts = [];
 
     if (safeLawIds.length > 0) {
-      const docs = await Promise.all(
-        safeLawIds.map(id => db.collection('lawSources').doc(id).get())
-      );
+      const docs = await Promise.all(safeLawIds.map((id) => db.collection('lawSources').doc(id).get()));
 
       docs.forEach((doc, i) => {
-        console.log(`Doc ${i} (id: ${safeLawIds[i]}): exists=${doc.exists}, hasContent=${!!doc.data()?.content}`);
+        console.log(`Doc ${i} (id: ${safeLawIds[i]}): exists=${doc.exists}, hasApiContext=${!!doc.data()?.api_context}`);
       });
 
       lawTexts = docs
-        .filter(doc => doc.exists && doc.data().content)
-        .map(doc => {
+        .filter((doc) => doc.exists && (doc.data().content || doc.data().api_context))
+        .map((doc) => {
           const data = doc.data();
-          const trimmedContent = (data.content || "").slice(0, MAX_CHARS_PER_LAW);
+          // Prefer full document content for context; fall back to api_context string
+          let sourceText = data.content || '';
 
-          // add title and url to the content to provide more context to Claude, especially for laws with similar content but different sources
-          return `### ${data.title}\nURL: ${data.url || ''}\n\n${trimmedContent}`;
+          if (!sourceText && data.api_context) {
+            if (typeof data.api_context === 'string') {
+              sourceText = data.api_context;
+            } else if (typeof data.api_context.api_context === 'string') {
+              sourceText = data.api_context.api_context;
+            }
+          }
+
+          const trimmedText = (sourceText || '').slice(0, MAX_CHARS_PER_LAW);
+
+          return `### ${data.title}\nURL: ${data.url || ''}\n\n${trimmedText}`;
         });
 
       console.log("lawTexts count after filter:", lawTexts.length);
