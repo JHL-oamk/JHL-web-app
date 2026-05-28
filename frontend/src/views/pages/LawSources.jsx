@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 import { Navbar } from '../components/Navbar';
 import { Button } from '../components/Button';
 import { uploadLawSourceFileApi, deleteLawSourceFileApi } from '../../models/lawSourceApi';
@@ -8,80 +10,54 @@ import colors from '../../config/colors';
 
 const LAW_SOURCES_STORAGE_KEY = 'jhl-law-sources';
 
-const loadSavedCategories = () => {
-  try {
-    const saved = window.localStorage.getItem(LAW_SOURCES_STORAGE_KEY);
-    if (!saved) return null;
-    const parsed = JSON.parse(saved);
-    if (Array.isArray(parsed)) return parsed;
-  } catch (error) {
-    console.warn('Failed to load saved law sources:', error);
-  }
-  return null;
+const buildCategoriesFromFirestore = (docs) => {
+  const categoryMap = {};
+
+  docs.forEach((doc) => {
+    const data = doc.data();
+    const cat = data.category || 'Muut';
+
+    if (!categoryMap[cat]) {
+      categoryMap[cat] = {
+        id: cat,
+        title: cat,
+        title_en: cat,
+        title_fi: cat,
+        sources: [],
+      };
+    }
+
+    if (data.type === 'tes_chunk') {
+      const parentId = `tes:${data.parent}`;
+      const existing = categoryMap[cat].sources.find(s => s.id === parentId);
+      if (!existing) {
+        categoryMap[cat].sources.push({
+          id: parentId,
+          type: 'link',
+          title: data.parent,
+          title_en: data.parent,
+          title_fi: data.parent,
+          url: data.url || '',
+        });
+      }
+    } else {
+      categoryMap[cat].sources.push({
+        id: doc.id,
+        type: 'link',
+        title: data.title || doc.id,
+        title_en: data.title || doc.id,
+        title_fi: data.title || doc.id,
+        url: data.url || '',
+      });
+    }
+  });
+
+  return Object.values(categoryMap).sort((a, b) => a.title.localeCompare(b.title, 'fi'));
 };
 
-const buildInitialCategories = () => ([
-  {
-    id: 1,
-    title: 'Employment',
-    title_en: 'Employment',
-    title_fi: 'Työsuhde',
-    sources: [
-      { id: 101, type: 'link', title: 'Finnish Employment Contracts Act', title_en: 'Finnish Employment Contracts Act', title_fi: 'Työsopimuslaki', url: 'https://www.finlex.fi/en/legislation/2001/55' },
-      { id: 102, type: 'link', title: 'Act on Equality between Women and Men', title_en: 'Act on Equality between Women and Men', title_fi: 'Laki naisten ja miesten välisestä tasa-arvosta', url: 'https://www.finlex.fi/en/legislation/1986/609' },
-      { id: 103, type: 'link', title: 'Act on Privacy in Working Life', title_en: 'Act on Privacy in Working Life', title_fi: 'Laki yksityisyyden suojasta työelämässä', url: 'https://www.finlex.fi/en/legislation/2004/759' },
-      { id: 104, type: 'link', title: 'Act on Health Care Professionals', title_en: 'Act on Health Care Professionals', title_fi: 'Laki terveydenhuollon ammattihenkilöistä', url: 'https://www.finlex.fi/en/legislation/1994/559' },
-      { id: 105, type: 'link', title: 'Act on Social Welfare Professionals', title_en: 'Act on Social Welfare Professionals', title_fi: 'Laki sosiaalihuollon ammattihenkilöistä', url: 'https://www.finlex.fi/en/legislation/2015/817' },
-    ]
-  },
-  {
-    id: 2,
-    title: 'Working Hours & Leave',
-    title_en: 'Working Hours & Leave',
-    title_fi: 'Työaika ja vapaat',
-    sources: [
-      { id: 201, type: 'link', title: 'Working Hours Act', title_en: 'Working Hours Act', title_fi: 'Työaikalaki', url: 'https://www.finlex.fi/en/legislation/2019/872' },
-      { id: 202, type: 'link', title: 'Annual Holidays Act', title_en: 'Annual Holidays Act', title_fi: 'Vuosilomalaki', url: 'https://www.finlex.fi/en/legislation/2005/162' },
-      { id: 203, type: 'link', title: 'Study Leave Act', title_en: 'Study Leave Act', title_fi: 'Opintovapaalaki', url: 'https://www.finlex.fi/en/legislation/1979/864' },
-    ]
-  },
-  {
-    id: 3,
-    title: 'Safety & Equality',
-    title_en: 'Safety & Equality',
-    title_fi: 'Turvallisuus ja tasa-arvo',
-    sources: [
-      { id: 301, type: 'link', title: 'Occupational Safety and Health Act', title_en: 'Occupational Safety and Health Act', title_fi: 'Työturvallisuuslaki', url: 'https://www.finlex.fi/en/legislation/2002/738' },
-      { id: 302, type: 'link', title: 'Non-Discrimination Act', title_en: 'Non-Discrimination Act', title_fi: 'Yhdenvertaisuuslaki', url: 'https://www.finlex.fi/en/legislation/2014/1325' },
-      { id: 303, type: 'link', title: 'Act on Occupational Safety and Health Enforcement', title_en: 'Act on Occupational Safety and Health Enforcement', title_fi: 'Laki työsuojelun valvonnasta ja työpaikan työsuojeluyhteistoiminnasta', url: 'https://www.finlex.fi/en/legislation/2006/44' },
-      { id: 304, type: 'link', title: 'Act on the Publicity of Government Activities', title_en: 'Act on the Publicity of Government Activities', title_fi: 'Laki viranomaisten toiminnan julkisuudesta', url: 'https://www.finlex.fi/en/legislation/1999/621' },
-    ]
-  },
-  {
-    id: 4,
-    title: 'Cooperation',
-    title_en: 'Cooperation',
-    title_fi: 'Yhteistoiminta',
-    sources: [
-      { id: 401, type: 'link', title: 'Cooperation within Undertakings Act', title_en: 'Cooperation within Undertakings Act', title_fi: 'Laki yhteistoiminnasta yrityksissä', url: 'https://www.finlex.fi/en/legislation/2021/1333' },
-      { id: 402, type: 'link', title: 'Act on Cooperation between Employer and Employees in Municipalities', title_en: 'Act on Cooperation between Employer and Employees in Municipalities', title_fi: 'Laki työnantajan ja henkilöstön välisestä yhteistoiminnasta kunnissa', url: 'https://www.finlex.fi/en/legislation/2007/449' },
-    ]
-  },
-  {
-    id: 5,
-    title: 'Collective Agreements',
-    title_en: 'Collective Agreements',
-    title_fi: 'Työehtosopimukset',
-    sources: [
-      { id: 501, type: 'link', title: 'Municipal Health and Social Services Agreement (HYVTES)', title_en: 'Municipal Health and Social Services Agreement (HYVTES)', title_fi: 'Hyvinvointialan yleinen virka- ja työehtosopimus 2025–2028 (HYVTES)', url: 'https://www.kt.fi/sopimukset/hyvtes/2025-2028/kokoteksti' },
-      { id: 502, type: 'link', title: 'Social and Health Care Collective Agreement (Sote-sopimus)', title_en: 'Social and Health Care Collective Agreement (Sote-sopimus)', title_fi: 'Sosiaali- ja terveydenhuollon työehtosopimus (Sote-sopimus)', url: 'https://www.kt.fi/sopimukset/sote/2025-2028/kokoteksti' },
-      { id: 503, type: 'link', title: 'General Municipal Collective Agreement (YTES)', title_en: 'General Municipal Collective Agreement (YTES)', title_fi: 'Kunnallinen yleinen virka- ja työehtosopimus (YTES)', url: 'https://www.kt.fi/sopimukset/ytes/2025-2028/kokoteksti' },
-    ]
-  }
-]);
-
 export const LawSources = ({ authViewModel }) => {
-  const [categories, setCategories] = useState(() => loadSavedCategories() || buildInitialCategories());
+  const [categories, setCategories] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [search, setSearch] = useState('');
   const [showAddCategory, setShowAddCategory] = useState(false);
@@ -94,6 +70,26 @@ export const LawSources = ({ authViewModel }) => {
   const sourceDraftRefs = useRef({});
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.startsWith('fi') ? 'fi' : 'en';
+
+  useEffect(() => {
+    const loadFromFirestore = async () => {
+      try {
+        setIsLoading(true);
+        const snap = await getDocs(
+          query(collection(db, 'lawSources'), where('active', '==', true))
+        );
+        const built = buildCategoriesFromFirestore(snap.docs);
+        setCategories(built);
+      } catch (err) {
+        console.error('Failed to load law sources:', err);
+        toast.error('Failed to load law sources');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadFromFirestore();
+  }, []);
 
   const getTitle = (item) => {
     if (lang === 'fi' && item.title_fi) return item.title_fi;
@@ -123,14 +119,6 @@ export const LawSources = ({ authViewModel }) => {
     setShowAddCategory(false);
     setSourceDrafts({});
   };
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(LAW_SOURCES_STORAGE_KEY, JSON.stringify(categories));
-    } catch (error) {
-      console.warn('Failed to save law sources:', error);
-    }
-  }, [categories]);
 
   const handleAddCategoryToggle = () => {
     setShowAddCategory((prev) => !prev);
@@ -297,6 +285,17 @@ export const LawSources = ({ authViewModel }) => {
       )}
     </div>
   );
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen pt-[50px]" style={{ backgroundColor: colors.white }}>
+        <Navbar authViewModel={authViewModel} />
+        <div className="flex items-center justify-center h-64">
+          <p className="text-sm" style={{ color: colors.darkGrey }}>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pt-[50px]" style={{ color: colors.black, backgroundColor: colors.white }}>
@@ -516,7 +515,6 @@ export const LawSources = ({ authViewModel }) => {
               </div>
             );
           })}
-          
         </div>
       </div>
     </div>

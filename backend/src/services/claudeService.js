@@ -38,7 +38,6 @@ STRUCTURE
    [Full Name of Law]](#)   Published Date: DD-MM-YYYY
    [https://www.finlex.fi/...]
 
-
 Rules:
 - Only list laws you actually used in your answer
 - Use the official Finnish law name (in Finnish or English as appropriate)
@@ -55,11 +54,11 @@ STRICT RULES
 
 const askClaude = async (question, selectedLaws = []) => {
   const lawContext = selectedLaws.length > 0
-    ? `\n\nHERE ARE THE PROVIDED LAW TEXTS TO USE:\n${selectedLaws.join("\n")}\n`
+    ? `\n\nHERE ARE THE PROVIDED LAW TEXTS TO USE:\n${selectedLaws.join("\n\n---\n\n")}\n`
     : "";
 
   const message = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
+    model: process.env.CLAUDE_SMALL_MODEL || "claude-haiku-4-5-20251001",
     max_tokens: 2048,
     system: SYSTEM_PROMPT,
     messages: [
@@ -73,4 +72,41 @@ const askClaude = async (question, selectedLaws = []) => {
   return message.content[0].text;
 };
 
-module.exports = { askClaude };
+const selectRelevantSources = async (question, sources) => {
+  if (!sources || sources.length === 0) return [];
+
+  const sourceList = sources.map((s, i) => {
+    const label = s.type === 'tes_chunk'
+      ? `TES: ${s.parent}`
+      : s.title;
+    return `${i + 1}. [${label}]\n   Context: ${s.api_context}`;
+  }).join('\n\n');
+
+  try {
+    const message = await client.messages.create({
+      model: process.env.CLAUDE_SMALL_MODEL || "claude-haiku-4-5-20251001",
+      max_tokens: 100,
+      system: `You are a legal source selector. Given a user question and a list of Finnish law sources with descriptions, select the 1-3 most relevant sources. Return ONLY a valid JSON array of integers (the source numbers). Example: [1, 3]. Return nothing else — no explanation, no markdown.`,
+      messages: [{
+        role: "user",
+        content: `User question: "${question}"\n\nAvailable sources:\n${sourceList}\n\nWhich sources are most relevant? Return only a JSON array of integers.`
+      }]
+    });
+
+    const text = message.content[0].text.trim();
+    const indices = JSON.parse(text);
+
+    if (!Array.isArray(indices)) return [sources[0]];
+
+    return indices
+      .filter(i => Number.isInteger(i) && i >= 1 && i <= sources.length)
+      .map(i => sources[i - 1]);
+
+  } catch (err) {
+    console.error("selectRelevantSources failed:", err.message);
+    // Fallback: palauta ensimmäinen lähde
+    return sources.slice(0, 1);
+  }
+};
+
+module.exports = { askClaude, selectRelevantSources };

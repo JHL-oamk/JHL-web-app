@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
-import { lawsList } from "../models/ChatbotModel";
 import { logoutApi } from "../models/authApi";
 import { askClaude } from "../models/ClaudeApi";
 import {
@@ -35,11 +36,62 @@ export const useChatbotViewModel = (authViewModel) => {
   const [showChatHistory, setShowChatHistory] = useState(true);
   const [showFolders, setShowFolders] = useState(true);
   const [showLawSource, setShowLawSource] = useState(true);
+  const [laws, setLaws] = useState([]);
 
-  const laws = lawsList;
   const authUser = authViewModel?.user;
 
-  // ---------------- LOAD ON MOUNT ----------------
+  // ---------------- LOAD LAWS FROM FIRESTORE ----------------
+  useEffect(() => {
+    const loadLaws = async () => {
+      try {
+        const snap = await getDocs(
+          query(collection(db, 'lawSources'), where('active', '==', true))
+        );
+
+        const lawItems = [];
+        const seenParents = new Set();
+
+        snap.docs.forEach(doc => {
+          const data = doc.data();
+
+          if (data.type === 'tes_chunk') {
+            if (!seenParents.has(data.parent)) {
+              seenParents.add(data.parent);
+              lawItems.push({
+                id: `tes:${data.parent}`,
+                name: data.parent,
+                name_fi: data.parent,
+                name_en: data.parent,
+                category: data.category || 'Työehtosopimukset',
+                category_fi: data.category || 'Työehtosopimukset',
+                category_en: 'Collective Agreements',
+                link: data.url || '',
+              });
+            }
+          } else {
+            lawItems.push({
+              id: doc.id,
+              name: data.title || doc.id,
+              name_fi: data.title || doc.id,
+              name_en: data.title || doc.id,
+              category: data.category || 'Muut',
+              category_fi: data.category || 'Muut',
+              category_en: data.category || 'Other',
+              link: data.url || '',
+            });
+          }
+        });
+
+        setLaws(lawItems);
+      } catch (err) {
+        console.error("Failed to load laws:", err);
+      }
+    };
+
+    loadLaws();
+  }, []);
+
+  // ---------------- LOAD CHATS & FOLDERS ON MOUNT ----------------
   useEffect(() => {
     if (!authUser?.uid) return;
     const loadData = async () => {
@@ -75,6 +127,7 @@ export const useChatbotViewModel = (authViewModel) => {
     setChats(prev => [{ id: chatId, title: "New Chat", folderId: null, messages: welcomeMessages }, ...prev]);
     setCurrentChatId(chatId);
     setMessages(welcomeMessages);
+    setSelectedLaws([]);
     try { await createChatApi(chatId, "New Chat"); }
     catch (err) { console.error("Failed to create chat:", err); }
   };
@@ -102,7 +155,9 @@ export const useChatbotViewModel = (authViewModel) => {
       catch (err) { console.error("Failed to create chat:", err); }
     }
 
-    // Konteksti tallennetaan per viesti
+    // Onko tämä ensimmäinen käyttäjän viesti?
+    const isFirstMessage = messages.filter(m => m.role === "user").length === 0;
+
     const contextLaws = laws
       .filter(l => selectedLaws.includes(l.id))
       .map(l => ({ name: l.name, link: l.link }));
@@ -110,7 +165,7 @@ export const useChatbotViewModel = (authViewModel) => {
     const userMessage = {
       role: "user",
       content: textToSend,
-      context: contextLaws, // ← tallennetaan tähän viestiin
+      context: contextLaws,
     };
 
     const updatedMessages = [...messages, userMessage];
@@ -118,13 +173,23 @@ export const useChatbotViewModel = (authViewModel) => {
     setInput("");
 
     try {
-      const aiReply = await askClaude(textToSend, selectedLaws);
+      // Ensimmäinen kysymys → backend valitsee automaattisesti (ei lawIds)
+      // 2.+ kysymys → lähetä käyttäjän valitsemat lähteet
+      const { reply: aiReply, sources } = await askClaude(
+        textToSend,
+        isFirstMessage ? [] : selectedLaws
+      );
+
+      // Ensimmäinen kysymys → aseta AI:n valitsemat lähteet sidebariin
+      if (isFirstMessage && sources && sources.length > 0) {
+        const sourceIds = sources.map(s => s.id).filter(Boolean);
+        setSelectedLaws(sourceIds);
+      }
+
       const finalMessages = [...updatedMessages, { role: "assistant", content: aiReply }];
       setMessages(finalMessages);
-
       await updateChatMessagesApi(activeChatId, finalMessages);
 
-      // Auto-title
       const chat = chats.find(c => c.id === activeChatId);
       if (chat?.title === "New Chat") {
         const autoTitle = textToSend.slice(0, 40);
@@ -164,7 +229,11 @@ export const useChatbotViewModel = (authViewModel) => {
     setChats(remaining);
     if (currentChatId === chatId) {
       if (remaining.length > 0) handleSelectChat(remaining[0].id);
-      else { setCurrentChatId(null); setMessages([{ role: "assistant", content: "WELCOME_VIEW" }]); }
+      else {
+        setCurrentChatId(null);
+        setMessages([{ role: "assistant", content: "WELCOME_VIEW" }]);
+        setSelectedLaws([]);
+      }
     }
     try { await deleteChatApi(chatId); }
     catch (err) { console.error("Failed to delete chat:", err); }

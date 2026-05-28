@@ -69,7 +69,7 @@ export const ChatbotSidebar = ({ vm }) => {
   const folderColorTriggerRefs = useRef({});
   const folderChatMenuTriggerRefs = useRef({});
 
-  const MAX_LAWS = 3;
+  const MAX_LAWS = 10;
   const CHAT_SECTION_WEIGHT = 25;
   const FOLDER_SECTION_WEIGHT = 25;
   const LAW_SECTION_WEIGHT = 50;
