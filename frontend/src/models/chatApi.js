@@ -60,6 +60,15 @@ export const updateChatFolderApi = async (chatId, folderId) => {
   return res.json();
 };
 
+export const updateChatContextApi = async (chatId, context) => {
+  const res = await fetch(`${API_URL}/api/chats/${chatId}/context`, {
+    method: "PUT",
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ context }),
+  });
+  return res.json();
+};
+
 export const deleteChatApi = async (chatId) => {
   const res = await fetch(`${API_URL}/api/chats/${chatId}`, {
     method: "DELETE",

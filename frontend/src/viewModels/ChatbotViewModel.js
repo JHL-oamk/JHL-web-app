@@ -11,6 +11,7 @@ import {
   getChatApi,
   updateChatMessagesApi,
   updateChatTitleApi,
+  updateChatContextApi,
   deleteChatApi,
   updateChatFolderApi,
 } from "../models/chatApi";
@@ -39,6 +40,7 @@ export const useChatbotViewModel = (authViewModel) => {
   const [laws, setLaws] = useState([]);
 
   const authUser = authViewModel?.user;
+  const isFirstUserMessage = messages.filter(m => m.role === "user").length === 0;
 
   // ---------------- LOAD LAWS FROM FIRESTORE ----------------
   useEffect(() => {
@@ -53,7 +55,6 @@ export const useChatbotViewModel = (authViewModel) => {
 
         snap.docs.forEach(doc => {
           const data = doc.data();
-
           if (data.type === 'tes_chunk') {
             if (!seenParents.has(data.parent)) {
               seenParents.add(data.parent);
@@ -87,7 +88,6 @@ export const useChatbotViewModel = (authViewModel) => {
         console.error("Failed to load laws:", err);
       }
     };
-
     loadLaws();
   }, []);
 
@@ -155,17 +155,13 @@ export const useChatbotViewModel = (authViewModel) => {
       catch (err) { console.error("Failed to create chat:", err); }
     }
 
-    // Onko tämä ensimmäinen käyttäjän viesti?
     const isFirstMessage = messages.filter(m => m.role === "user").length === 0;
 
-    const contextLaws = laws
-      .filter(l => selectedLaws.includes(l.id))
-      .map(l => ({ name: l.name, link: l.link }));
-
+    // Rakenna väliaikainen userMessage ilman kontekstia
     const userMessage = {
       role: "user",
       content: textToSend,
-      context: contextLaws,
+      context: [],
     };
 
     const updatedMessages = [...messages, userMessage];
@@ -173,22 +169,36 @@ export const useChatbotViewModel = (authViewModel) => {
     setInput("");
 
     try {
-      // Ensimmäinen kysymys → backend valitsee automaattisesti (ei lawIds)
-      // 2.+ kysymys → lähetä käyttäjän valitsemat lähteet
       const { reply: aiReply, sources } = await askClaude(
         textToSend,
         isFirstMessage ? [] : selectedLaws
       );
 
-      // Ensimmäinen kysymys → aseta AI:n valitsemat lähteet sidebariin
+      // Aseta AI:n valitsemat lähteet sidebariin ensimmäisellä kysymyksellä
       if (isFirstMessage && sources && sources.length > 0) {
         const sourceIds = sources.map(s => s.id).filter(Boolean);
         setSelectedLaws(sourceIds);
       }
 
-      const finalMessages = [...updatedMessages, { role: "assistant", content: aiReply }];
+      // Tallenna käytetyt lähteet userMessage kontekstiin
+      const usedSources = sources && sources.length > 0
+        ? sources.map(s => ({ id: s.id, title: s.title }))
+        : laws.filter(l => selectedLaws.includes(l.id)).map(l => ({ id: l.id, title: l.name }));
+
+      // Päivitä userMessage kontekstilla
+      const userMessageWithContext = { ...userMessage, context: usedSources };
+
+      const finalMessages = [
+        ...messages,
+        userMessageWithContext,
+        { role: "assistant", content: aiReply }
+      ];
+
       setMessages(finalMessages);
       await updateChatMessagesApi(activeChatId, finalMessages);
+
+      // Tallenna konteksti myös erilliseen context kenttään Firestoressä
+      await updateChatContextApi(activeChatId, usedSources);
 
       const chat = chats.find(c => c.id === activeChatId);
       if (chat?.title === "New Chat") {
@@ -281,7 +291,7 @@ export const useChatbotViewModel = (authViewModel) => {
   return {
     chats, folders, messages, currentChatId, openChatMenuId, openFolderId,
     chatSearch, input, selectedLaws, showChatHistory, showFolders, showLawSource,
-    laws, authUser,
+    laws, authUser, isFirstUserMessage,
     setChats, setFolders, setMessages,
     setCurrentChatId: handleSelectChat,
     setOpenChatMenuId, setOpenFolderId, setChatSearch, setInput, setSelectedLaws,

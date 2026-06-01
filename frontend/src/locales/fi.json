@@ -117,5 +117,13 @@
     "no_folders": "Ei kansioita",
     "law_limit_warning": "Voit valita enintään {{max}} lakia.",
     "edit": "Muokkaa"
-  }
+  },
+  "suggestions": [
+  "Mikä on ylityökorvaukseni HYVTES:n mukaan?",
+  "Kuinka pitkä vuosilomani on?",
+  "Voiko työnantaja irtisanoa minut ilman varoitusta?",
+  "Mitä teen jos koen epätasa-arvoista kohtelua työpaikalla?"
+],
+"welcome_title": "Hei! Olen JHL:n lakiavustaja.",
+"welcome_subtitle": "Autan sinua ymmärtämään oikeutesi kunta- ja hyvinvointialalla."
 }

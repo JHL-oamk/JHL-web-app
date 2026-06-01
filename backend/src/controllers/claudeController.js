@@ -2,7 +2,7 @@ const { askClaude, selectRelevantSources } = require('../services/claudeService'
 const { db } = require('../config/firebaseAdmin');
 
 const MAX_CHUNKS_PER_TES = 15;
-const MAX_CHARS_PER_DOC = 6000;
+const MAX_CHARS_PER_DOC = 50000;
 
 const fetchLawTexts = async (selectedSources) => {
   const lawTexts = [];
