@@ -78,6 +78,14 @@ EHDOTTOMAT SÄÄNNÖT — EI POIKKEUKSIA
    Erityisesti: jos lähdemateriaalissa on sekä aineellinen pykälä 
    (mitä saa tehdä) että menettelyllinen pykälä (miten tehdään), 
    käsittele molemmat.
+   
+   TES-kysymyksissä (HYVTES, SOTE, YTES) — ylityö ja lisätyö:
+   - Selitä AINA järjestys: ensin lisätyö (säännöllisen ajan yli mutta alle ylityörajan),
+     vasta sitten ylityö (ylityörajan ylittävä työ)
+   - Mainitse miten ylityö syntyy: työvuoroluetteloon merkityn säännöllisen työajan
+     ylittäminen — ei automaattisesti kellon mukaan
+   - Ylityö ei synny pelkästään siksi, että tehdään yli 8 tuntia päivässä tai yli
+     38h 15min viikossa, ellei työvuoroluettelo osoita säännöllisen työajan ylitystä
 
 10. PITUUS — TIIVISTÄ ROHKEASTI
     Yksinkertainen kysymys (1 laki, 1 pykälä): max 150 sanaa vastauksessa.
