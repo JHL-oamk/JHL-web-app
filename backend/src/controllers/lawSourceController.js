@@ -1,6 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const { PDFParse } = require('pdf-parse');
+const { saveLawSource, deleteLawSourceByFileUrl } = require('../services/lawSourceService');
+const { generateApiContext } = require('../services/claudeService');
 
 const uploadsDir = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -28,8 +31,8 @@ const upload = multer({
   },
 }).single('file');
 
-const uploadLawSourceFileController = (req, res) => {
-  upload(req, res, (err) => {
+const uploadLawSourceFileController = async (req, res) => {
+  upload(req, res, async (err) => {
     if (err) {
       return res.status(400).json({ error: err.message });
     }
@@ -39,11 +42,50 @@ const uploadLawSourceFileController = (req, res) => {
     }
 
     const fileUrl = `/uploads/${req.file.filename}`;
-    res.json({ fileName: req.file.originalname, fileUrl });
+    const filePath = path.join(uploadsDir, req.file.filename);
+
+    try {
+      const fileBuffer = fs.readFileSync(filePath);
+      const parser = new PDFParse({ data: fileBuffer });
+      const parsed = await parser.getText();
+      await parser.destroy();
+
+      let extractedText = '';
+      if (typeof parsed === 'string') {
+        extractedText = parsed;
+      } else if (parsed && typeof parsed.text === 'string') {
+        extractedText = parsed.text;
+      } else if (parsed && Array.isArray(parsed.pages)) {
+        extractedText = parsed.pages.map(p => (p && p.text) || '').join(' ');
+      } else {
+        extractedText = String(parsed || '');
+      }
+
+      extractedText = extractedText.replace(/\s+/g, ' ').trim();
+      const content = extractedText.slice(0, 150000);
+      const summarySource = extractedText.slice(0, 100000);
+      const apiContext = await generateApiContext(summarySource, req.file.originalname, fileUrl);
+      const docId = `${Date.now()}-${req.file.filename}`;
+
+      const saved = await saveLawSource({
+        docId,
+        title: req.file.originalname,
+        fileUrl,
+        fileName: req.file.originalname,
+        content,
+        apiContext,
+        uploadedBy: req.user?.uid,
+      });
+
+      return res.json({ id: docId, fileName: req.file.originalname, fileUrl, api_context: saved.api_context, active: saved.active, category: saved.category, language: saved.language });
+    } catch (error) {
+      console.error('PDF upload error:', error);
+      return res.status(500).json({ error: 'Failed to parse and store PDF file.' });
+    }
   });
 };
 
-const deleteLawSourceFileController = (req, res) => {
+const deleteLawSourceFileController = async (req, res) => {
   const { fileUrl } = req.body || {};
   if (!fileUrl) {
     return res.status(400).json({ error: 'fileUrl is required' });
@@ -73,8 +115,10 @@ const deleteLawSourceFileController = (req, res) => {
 
   try {
     fs.unlinkSync(normalizedFilePath);
-    return res.json({ success: true });
+    const deletedIds = await deleteLawSourceByFileUrl(fileUrl);
+    return res.json({ success: true, deletedIds });
   } catch (error) {
+    console.error('Failed to delete law source file:', error);
     return res.status(500).json({ error: 'Failed to delete file' });
   }
 };

@@ -9,6 +9,7 @@ const claudeRoutes = require('./routes/claudeRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const folderRoutes = require('./routes/folderRoutes');
 const lawSourceRoutes = require('./routes/lawSourceRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -35,5 +36,6 @@ app.use('/api/claude', claudeRoutes);
 app.use('/api/chats', verifyToken, chatRoutes);
 app.use('/api/folders', verifyToken, folderRoutes);
 app.use('/api/law-sources', verifyToken, lawSourceRoutes);
+app.use('/api/admin', verifyToken, adminRoutes);
 
 module.exports = app;
