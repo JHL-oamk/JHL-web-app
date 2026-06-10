@@ -4,6 +4,9 @@ const client = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
 });
 
+const FAST_MODEL = process.env.FAST_MODEL || "claude-haiku-4-5-20251001";
+const SMART_MODEL = process.env.SMART_MODEL || "claude-sonnet-4-6-20250514";
+
 const SYSTEM_PROMPT = `
 Olet JHL:n (Julkisten ja hyvinvointialojen liitto) lakitietopalvelu. Tehtäväsi on antaa täsmällisiä vastauksia, jotka perustuvat yksinomaan sinulle toimitettuihin lakiteksteihin ja työehtosopimuksiin.
 
@@ -37,6 +40,52 @@ EHDOTTOMAT SÄÄNNÖT — EI POIKKEUKSIA
 5. VAIN LÖYDETYT PYKÄLÄT LÄHTEINÄ
    Listaa lähteisiin VAIN pykälät, joiden SISÄLLÖN olet lukenut annetusta tekstistä.
    Älä viittaa pykälään jonka tekstiä ei ole toimitettu sinulle.
+   Jos kysymys koskee useampaa toisiinsa liittyvää pykälää (esim. 6 § ja 8 §),
+   mainitse kaikki relevantit pykälät vastauksessa — älä rajaudu yhteen.
+
+6. TARKISTA AINA ANNETUISTA TEKSTEISTÄ
+   Ennen vastaamista tarkista löytyykö annetuista teksteistä:
+   - Täydentäviä pykäliä samassa laissa (esim. yleinen huolehtimisvelvoite, menettelysäännökset)
+   - Menettelyllisiä vaatimuksia: onko päätös tehtävä kirjallisena, onko se perusteltava,
+     kuka on toimivaltainen viranomainen
+   - Muutoksenhakusäännöksiä: onko päätökseen muutoksenhakuoikeus, mihin ja missä ajassa
+   - Työntekijän tai potilaan omia oikeuksia tilanteessa (esim. oikeus keskeyttää vaarallinen työ,
+     oikeus hakea muutosta)
+   Jos nämä löytyvät annetuista teksteistä, sisällytä ne vastaukseen.
+
+7. KYSYMYKSEN TYYPPI
+   Jos kysymys alkaa case-kuvauksella tai sisältää konkreettisen tilanteen
+   (esim. "potilas on...", "työntekijä kieltäytyy...", "työnantaja ei ole..."):
+   → Rakenna vastaus käytännön tilanteen näkökulmasta. Kerro mitä tapauksessa
+     konkreettisesti pitää tehdä ja mitkä oikeudet ja velvollisuudet aktivoituvat.
+   Jos kysymys on teoreettinen tai yleinen
+   (esim. "mikä on...", "miten lasketaan...", "kuinka pitkä on..."):
+   → Vastaa yleisellä tasolla, selkeästi ja tiivistetysti.
+
+8. PERUSOIKEUSRAJOITUKSET — TARKISTA AINA
+   Jos kyseessä on pakkokeino, rajoitustoimenpide tai viranomaispäätös, 
+   tarkista annetuista teksteistä löytyvätkö seuraavat ja mainitse ne:
+   - Välttämättömyysvaatimus: onko toimenpide välttämätön
+   - Suhteellisuusperiaate: onko toimenpide oikeassa suhteessa tavoitteeseen
+   - Kirjallinen päätös ja perusteluvelvollisuus
+   - Muutoksenhakuoikeus: mihin ja missä ajassa
+   - Itsemääräämisoikeus (Asiakaslaki 8 §) jos relevantti
+
+9. KÄYTÄ KAIKKI RELEVANTIT PYKÄLÄT
+   Kun vastauksessa on useita samaan tilanteeseen liittyviä pykäliä 
+   (esim. yleinen velvoite + menettelysäännös + muutoksenhaku),
+   mainitse kaikki — älä tyydy yhteen pykälään.
+   Erityisesti: jos lähdemateriaalissa on sekä aineellinen pykälä 
+   (mitä saa tehdä) että menettelyllinen pykälä (miten tehdään), 
+   käsittele molemmat.
+
+10. PITUUS — TIIVISTÄ ROHKEASTI
+    Yksinkertainen kysymys (1 laki, 1 pykälä): max 150 sanaa vastauksessa.
+    Monitahoinen case (useampi laki tai pykälä): max 300 sanaa vastauksessa.
+    ÄLÄ toista samaa tietoa "Keskeinen säännös"- ja "Soveltaminen"-osioissa.
+    ÄLÄ käytä taulukkoa ellei vertailtavia vaihtoehtoja ole vähintään 3.
+    ÄLÄ lainaa pykälää kokonaan — tiivistä se yhteen virkkeeseen.
+    Lähteet eivät kuulu sanarajan piiriin.
 
 ═══════════════════════════════
 VASTAUKSEN RAKENNE — noudata aina
@@ -47,7 +96,23 @@ Selkeä, suora vastaus kysymykseen. Mainitse pykälä heti ensimmäisessä lause
 Enintään 3–5 lausetta. Ei turhia täytesanoja.
 
 **Keskeinen säännös:**
-Lainaus tai tarkka tiivistys relevanteista pykälistä. Merkitse pykälänumero.
+Tarkka tiivistys relevanteista pykälistä — EI suoraa lainausta, yksi virke per pykälä.
+Jos asiaan liittyy useampi pykälä, käsittele jokainen erikseen lyhyesti.
+
+**Käytännön soveltaminen:** (lisää kun tilanne on monitulkintainen tai epäselvä)
+Selitä lyhyesti miten pykälää sovelletaan käytännössä epäselvissä tilanteissa.
+Mainitse mihin yleiseen periaatteeseen (esim. potilaan etu, työntekijän suoja)
+nojataan, jos tilanne ei ole yksiselitteinen. Käytä vain annettujen tekstien tietoja.
+
+**Menettelylliset vaatimukset:** (lisää aina kun kyseessä on viranomaispäätös tai pakkokeino)
+Jos annetuissa teksteissä mainitaan: onko päätös tehtävä kirjallisena, onko se perusteltava,
+kuka on toimivaltainen tekemään päätöksen. Jätä pois jos ei löydy annetuista teksteistä.
+
+**Muutoksenhaku:** (lisää aina kun kyseessä on viranomaispäätös, pakkokeino tai sanktio)
+Jos annetuissa teksteissä mainitaan muutoksenhakuoikeus: mihin viranomaiseen valitetaan,
+missä määräajassa ja millä edellytyksillä. Jätä pois jos ei löydy annetuista teksteistä.
+Etsi aktiivisesti pykälät joissa mainitaan "valittaa", "hallinto-oikeus", "14 päivää",
+"30 päivää" — mainitse aina jos löytyy.
 
 **Poikkeukset tai erityistilanteet:** (jätä pois jos ei relevanttia)
 Mainitse vain poikkeukset jotka löytyvät annetusta tekstistä.
@@ -105,32 +170,101 @@ Lisää kerran per keskustelu, luontevaan kohtaan:
 "Tämä on yleistä lakitietoa, ei oikeudellista neuvontaa."
 `;
 
-const askClaude = async (question, selectedLaws = []) => {
-  const lawContext = selectedLaws.length > 0
-    ? `KÄYTÄ VAIN NÄITÄ LAKITEKSTEJÄ VASTAUKSESSA:\n\n${selectedLaws.join("\n\n---\n\n")}\n\n` +
-      `TÄRKEÄ MUISTUTUS: Viittaa vain pykäliin jotka löydät yllä olevista teksteistä. ` +
-      `Jos et löydä vastausta näistä teksteistä, sano se suoraan.\n\n`
-    : `HUOM: Sinulle ei ole toimitettu lakitekstejä tähän kysymykseen. ` +
-      `Vastaa: "Tähän kysymykseen ei löydy vastausta toimitetuista lähteistä. ` +
-      `Ota yhteyttä JHL:n lakimieheen tai luottamusmieheen."\n\n`;
-
-  const message = await client.messages.create({
-    model: process.env.CLAUDE_SMALL_MODEL || "claude-haiku-4-5-20251001",
-    max_tokens: 4096,
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
+// HAIKU — kysymyksen laajennus hakusanoiksi
+const expandQuestion = async (question) => {
+  try {
+    const message = await client.messages.create({
+      model: FAST_MODEL,
+      max_tokens: 150,
+      temperature: 0.1,
+      messages: [{
         role: "user",
-        content: `${lawContext}Käyttäjän kysymys: ${question}`,
-      },
-    ],
-  });
+        content: `Laajenna seuraava suomenkielinen lakikysymys hakusanoiksi. Lisää synonyymejä ja lakitermejä. Palauta vain pilkuilla eroteltu lista, ei muuta.\n\nKysymys: "${question}"`
+      }]
+    });
+    const expanded = message.content[0].text.trim();
+    console.log("Expanded question:", expanded);
+    return `${question} ${expanded}`;
+  } catch (err) {
+    console.error("expandQuestion failed:", err.message);
+    return question;
+  }
+};
 
+// Käytetään aina Haikua — Sonnet vain erikseen pyydettäessä
+const selectModel = (question) => {
+  const model = FAST_MODEL;
+  console.log(`Model selected: ${model}`);
+  return model;
+};
+
+// Prompt caching: system prompt + lakitekstit välimuistitetaan
+const askClaude = async (question, selectedLaws = [], conversationHistory = [], onChunk = null) => {
+  const model = selectModel(question);
+
+  const recentHistory = conversationHistory.slice(-4).map(msg => ({
+    role: msg.role,
+    content: typeof msg.content === 'string' ? msg.content : '',
+  })).filter(msg => msg.content && msg.role !== 'system');
+
+  let userContent;
+
+  if (selectedLaws.length > 0) {
+    const lawText = `KÄYTÄ VAIN NÄITÄ LAKITEKSTEJÄ VASTAUKSESSA:\n\n${selectedLaws.join("\n\n---\n\n")}\n\nTÄRKEÄ MUISTUTUS: Viittaa vain pykäliin jotka löydät yllä olevista teksteistä. Jos et löydä vastausta näistä teksteistä, sano se suoraan.`;
+    userContent = [
+      {
+        type: "text",
+        text: lawText,
+        cache_control: { type: "ephemeral" },
+      },
+      {
+        type: "text",
+        text: `Käyttäjän kysymys: ${question}`,
+      },
+    ];
+  } else {
+    userContent = `HUOM: Sinulle ei ole toimitettu lakitekstejä tähän kysymykseen. Vastaa: "Tähän kysymykseen ei löydy vastausta toimitetuista lähteistä. Ota yhteyttä JHL:n lakimieheen tai luottamusmieheen."\n\nKäyttäjän kysymys: ${question}`;
+  }
+
+  const messages = [
+    ...recentHistory,
+    { role: "user", content: userContent },
+  ];
+
+  const params = {
+    model,
+    max_tokens: 4096,
+    temperature: 0.2,
+    system: [
+      {
+        type: "text",
+        text: SYSTEM_PROMPT,
+        cache_control: { type: "ephemeral" },
+      }
+    ],
+    messages,
+  };
+
+  if (onChunk) {
+    const stream = await client.messages.stream(params);
+    for await (const chunk of stream) {
+      if (chunk.type === 'content_block_delta' && chunk.delta?.text) {
+        onChunk(chunk.delta.text);
+      }
+    }
+    const final = await stream.finalMessage();
+    return final.content[0].text;
+  }
+
+  const message = await client.messages.create(params);
   return message.content[0].text;
 };
 
+// HAIKU — lähteiden valinta
 const selectRelevantSources = async (question, sources) => {
   if (!sources || sources.length === 0) return [];
+
+  const expandedQuestion = await expandQuestion(question);
 
   const sourceList = sources.map((s, i) => {
     const label = s.type === 'tes_chunk' ? `TES: ${s.parent}` : s.title;
@@ -139,12 +273,13 @@ const selectRelevantSources = async (question, sources) => {
 
   try {
     const message = await client.messages.create({
-      model: process.env.CLAUDE_SMALL_MODEL || "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
-      system: `Olet suomalainen lakilähdehakija. Valitse kaikki lähteet joista löytyy tietoa käyttäjän kysymykseen vastaamiseksi. Ole kattava: jos kysytään ylityöstä, valitse sekä laki että TES. Jos kysytään työvuorolistasta, valitse sekä Työaikalaki että sovellettava TES. Palauta VAIN JSON-taulukko kokonaisluvuista. Esimerkki: [1, 3, 5]. Ei selityksiä, ei markdownia.`,
+      model: FAST_MODEL,
+      max_tokens: 512,
+      temperature: 0.1,
+      system: `Olet suomalainen lakilähdehakija. Valitse 2-4 TÄRKEINTÄ lähdettä joista löytyy suorin vastaus kysymykseen. Älä valitse marginaalisesti liittyviä lähteitä. Palauta VAIN JSON-taulukko kokonaisluvuista. Esimerkki: [1, 3]. Ei selityksiä, ei markdownia.`,
       messages: [{
         role: "user",
-        content: `Käyttäjän kysymys: "${question}"\n\nSaatavilla olevat lähteet:\n${sourceList}\n\nMitkä lähteet sisältävät tietoa tähän kysymykseen vastaamiseksi? Palauta JSON-taulukko.`
+        content: `Käyttäjän kysymys: "${expandedQuestion}"\n\nSaatavilla olevat lähteet:\n${sourceList}\n\nPalauta JSON-taulukko.`
       }]
     });
 
@@ -154,9 +289,21 @@ const selectRelevantSources = async (question, sources) => {
 
     if (!Array.isArray(indices)) return [sources[0]];
 
-    return indices
+    const selected = indices
       .filter(i => Number.isInteger(i) && i >= 1 && i <= sources.length)
       .map(i => sources[i - 1]);
+
+    // DIAGNOSTIIKKA — poista kun toimii
+    console.log(`\n=== SOURCE SELECTION ===`);
+    console.log(`Question: "${question}"`);
+    console.log(`Total sources available: ${sources.length}`);
+    console.log(`Selected (${selected.length}):`, selected.map(s => ({
+      title: s.title || s.parent,
+      type: s.type,
+    })));
+    console.log(`========================\n`);
+
+    return selected;
 
   } catch (err) {
     console.error("selectRelevantSources failed:", err.message);

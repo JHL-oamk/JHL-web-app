@@ -61,7 +61,6 @@ export const ChatbotSidebar = ({ vm }) => {
   const [openAddToFolderChatId, setOpenAddToFolderChatId] = useState(null);
   const [editingFolderId, setEditingFolderId] = useState(null);
   const [editingFolderName, setEditingFolderName] = useState('');
-  const [collapsedCategoryIds, setCollapsedCategoryIds] = useState([]);
   const [lawLimitWarning, setLawLimitWarning] = useState(false);
   const [lawSearch, setLawSearch] = useState('');
   const chatMenuTriggerRefs = useRef({});
@@ -72,7 +71,15 @@ export const ChatbotSidebar = ({ vm }) => {
   const MAX_LAWS = 10;
   const CHAT_SECTION_WEIGHT = 25;
   const FOLDER_SECTION_WEIGHT = 25;
-  const LAW_SECTION_WEIGHT = 50;
+  const LAW_SECTION_WEIGHT = 90;
+
+const [collapsedCategoryIds, setCollapsedCategoryIds] = useState([]);
+useEffect(() => {
+  if (vm.laws && vm.laws.length > 0) {
+    const allCategories = [...new Set(vm.laws.map(law => law.category || 'Other'))];
+    setCollapsedCategoryIds(allCategories);
+  }
+}, [vm.laws?.length]);
 
   const lawCategories = Object.values(
     (vm.laws || []).reduce((acc, law) => {

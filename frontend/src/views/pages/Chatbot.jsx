@@ -230,11 +230,22 @@ export const Chatbot = ({ authViewModel }) => {
 
           {/* INPUT AREA */}
           <div className="pb-2 pt-2 pr-4 mt-auto">
-            <div className="bg-white rounded-3xl p-3 mx-auto w-[50vw] shadow-md border border-gray-100">
+            <div className="bg-white rounded-3xl p-5 mx-auto w-[60vw] shadow-md border border-gray-100">
               <div className="text-[11px] mb-3 font-medium" style={{ color: colors.darkGrey }}>
                 {vm.isFirstUserMessage
                   ? '🤖 AI valitsee lähteet automaattisesti ensimmäiselle kysymykselle'
-                  : <>{t('chatbot.selected_sources')} <span className="text-blue-600">{vm.selectedLaws.length || '0'}</span> {t('chatbot.sources_label')}</>
+                  : <div className="flex items-center gap-2">
+                  <span>{t('chatbot.selected_sources')} <span className="text-blue-600">{vm.selectedLaws.length || '0'}</span> {t('chatbot.sources_label')}</span>
+                   {vm.selectedLaws.length > 0 && (
+                  <button
+                     onClick={() => vm.setSelectedLaws([])}
+                      className="text-[10px] px-2 py-0.5 rounded-full border hover:bg-gray-100 transition-colors"
+                      style={{ color: colors.darkGrey, borderColor: colors.grey }}
+                  >
+                  Tyhjennä
+                  </button>
+                 )}
+                </div>
                 }
               </div>
 

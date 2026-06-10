@@ -1,155 +1,146 @@
 const { askClaude, selectRelevantSources } = require('../services/claudeService');
 const { db } = require('../config/firebaseAdmin');
 
-const MAX_CHUNKS_PER_TES = 15;
-const MAX_CHARS_PER_DOC = 50000;
+const MAX_CHARS_PER_DOC = 140000; // Rajataan yksittäisen dokumentin pituus, jotta mahtuu Haikun kontekstiin
+const MAX_TOTAL_CHARS = 200000;
 
-const fetchLawTexts = async (selectedSources) => {
-  const lawTexts = [];
+// Firestore in-memory cache
+const docCache = new Map();
 
-  for (const selected of selectedSources) {
-    if (selected.type === 'tes_chunk') {
-      const snap = await db.collection('lawSources')
-        .where('type', '==', 'tes_chunk')
-        .where('parent', '==', selected.parent)
-        .where('active', '==', true)
-        .limit(MAX_CHUNKS_PER_TES)
-        .get();
-
-      snap.docs.forEach(doc => {
-        const data = doc.data();
-        const content = (data.content || "").slice(0, MAX_CHARS_PER_DOC);
-        lawTexts.push(`### ${data.title}\n${content}`);
-      });
-
-    } else {
-      const doc = await db.collection('lawSources').doc(selected.id).get();
-      if (doc.exists && doc.data().content) {
-        const data = doc.data();
-        const content = (data.content || "").slice(0, MAX_CHARS_PER_DOC);
-        lawTexts.push(`### ${data.title}\nURL: ${data.url || ''}\n\n${content}`);
-      }
+const fetchSingleSource = async (selected) => {
+  if (selected.type === 'tes_chunk') {
+    const cacheKey = `chunk:${selected.id}`;
+    if (docCache.has(cacheKey)) {
+      console.log("Cache hit:", cacheKey);
+      return docCache.get(cacheKey);
     }
+    const doc = await db.collection('lawSources').doc(selected.id).get();
+    const texts = [];
+    if (doc.exists && doc.data().content) {
+      const data = doc.data();
+      const content = (data.content || "").slice(0, MAX_CHARS_PER_DOC);
+      texts.push(`### ${data.title}\n${content}`);
+    }
+    docCache.set(cacheKey, texts);
+    return texts;
   }
 
-  return lawTexts;
+  const cacheKey = `law:${selected.id}`;
+  if (docCache.has(cacheKey)) {
+    console.log("Cache hit:", cacheKey);
+    return docCache.get(cacheKey);
+  }
+  const doc = await db.collection('lawSources').doc(selected.id).get();
+  const texts = [];
+  if (doc.exists && doc.data().content) {
+    const data = doc.data();
+    const content = (data.content || "").slice(0, MAX_CHARS_PER_DOC);
+    texts.push(`### ${data.title}\nURL: ${data.url || ''}\n\n${content}`);
+  }
+  docCache.set(cacheKey, texts);
+  return texts;
+};
+
+const fetchLawTexts = async (selectedSources) => {
+  const results = await Promise.all(selectedSources.map(s => fetchSingleSource(s)));
+  const allTexts = results.flat();
+
+  let total = 0;
+  const filtered = allTexts.filter(text => {
+    total += text.length;
+    return total <= MAX_TOTAL_CHARS;
+  });
+
+  if (filtered.length < allTexts.length) {
+    console.log(`Truncated: kept ${filtered.length}/${allTexts.length} chunks (total chars: ${total})`);
+  }
+
+  return { texts: filtered, truncated: filtered.length < allTexts.length };
 };
 
 const claudeController = async (req, res) => {
   try {
-    const { question, lawIds } = req.body;
+    const { question, lawIds, conversationHistory = [] } = req.body;
 
     if (!question) {
       return res.status(400).json({ success: false, error: "Missing question" });
     }
 
-    // Hae kaikki aktiiviset lähteet Firestoresta
     const snapshot = await db.collection('lawSources')
       .where('active', '==', true)
       .get();
 
     const allDocs = snapshot.docs;
 
-    let selectedSources = [];
+    // SSE headerit
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
 
-    // Jos käyttäjä on valinnut lähteet manuaalisesti → käytä niitä
+    // Rakenna lähdelista Haikulle — suodata manuaalisen valinnan mukaan jos annettu
+    const allSources = allDocs
+      .filter(doc => doc.data().api_context)
+      .map(doc => ({
+        id: doc.id,
+        title: doc.data().title,
+        type: doc.data().type,
+        parent: doc.data().parent || null,
+        category: doc.data().category,
+        api_context: doc.data().api_context,
+      }));
+
+    let sourcesToSearch;
+
     if (lawIds && lawIds.length > 0) {
-      console.log("Using manual lawIds:", lawIds);
+      // Manuaalinen valinta: Haiku etsii vain valittujen TES/lakien sisältä
+      console.log("Manual filter:", lawIds);
 
-      for (const id of lawIds) {
-        if (id.startsWith('tes:')) {
-          const parent = id.replace('tes:', '');
-          const representative = allDocs.find(
-            d => d.data().type === 'tes_chunk' && d.data().parent === parent
-          );
-          if (representative) {
-            selectedSources.push({
-              id: representative.id,
-              type: 'tes_chunk',
-              parent,
-              title: parent,
-              category: representative.data().category,
-              api_context: representative.data().api_context,
-            });
-          }
-        } else {
-          const doc = allDocs.find(d => d.id === id);
-          if (doc) {
-            selectedSources.push({
-              id: doc.id,
-              type: doc.data().type,
-              parent: doc.data().parent || null,
-              title: doc.data().title,
-              category: doc.data().category,
-              api_context: doc.data().api_context,
-            });
-          }
-        }
-      }
+      const allowedIds = new Set(lawIds);
+      const allowedParents = new Set(
+        lawIds.filter(id => id.startsWith('tes:')).map(id => id.replace('tes:', ''))
+      );
 
+      sourcesToSearch = allSources.filter(s => {
+        if (s.type === 'tes_chunk') return allowedParents.has(s.parent);
+        return allowedIds.has(s.id);
+      });
+
+      console.log(`Filtered to ${sourcesToSearch.length} sources from manual selection`);
     } else {
-      // Ensimmäinen kysymys → automaattinen valinta api_context perusteella
-      console.log("Auto-selecting sources for first question");
-
-      const allSources = allDocs
-        .filter(doc => doc.data().api_context)
-        .map(doc => ({
-          id: doc.id,
-          title: doc.data().title,
-          type: doc.data().type,
-          parent: doc.data().parent || null,
-          category: doc.data().category,
-          api_context: doc.data().api_context,
-        }));
-
-      // Yhdistä TES chunkkien api_contextit
-      const uniqueSources = [];
-      const seenParents = new Map();
-
-      for (const src of allSources) {
-        if (src.type === 'tes_chunk') {
-          if (!seenParents.has(src.parent)) {
-            seenParents.set(src.parent, {
-              ...src,
-              _allContexts: [src.api_context],
-              representativeOfParent: true,
-            });
-          } else {
-            const existing = seenParents.get(src.parent);
-            existing._allContexts.push(src.api_context);
-            existing.api_context = existing._allContexts.join(' | ');
-          }
-        } else {
-          uniqueSources.push(src);
-        }
-      }
-
-      for (const tes of seenParents.values()) {
-        uniqueSources.push(tes);
-      }
-
-      selectedSources = await selectRelevantSources(question, uniqueSources);
+      // Automaattinen valinta: kaikki lähteet
+      sourcesToSearch = allSources;
     }
 
+    // Haiku valitsee 2-4 relevanteinta chunkkia
+    const selectedSources = await selectRelevantSources(question, sourcesToSearch);
     console.log("Selected sources:", selectedSources.map(s => s.title || s.parent));
 
-    const lawTexts = await fetchLawTexts(selectedSources);
+    const { texts: lawTexts, truncated } = await fetchLawTexts(selectedSources);
     console.log("Total law text chunks:", lawTexts.length);
 
-    const reply = await askClaude(question, lawTexts);
+    const selectedSourcesMeta = selectedSources.map(s => ({
+      id: s.type === 'tes_chunk' ? `tes:${s.parent}` : s.id,
+      title: s.title || s.parent,
+    }));
 
-    return res.json({
-      success: true,
-      data: reply,
-      selectedSources: selectedSources.map(s => ({
-        id: s.type === 'tes_chunk' ? `tes:${s.parent}` : s.id,
-        title: s.title || s.parent,
-      }))
+    res.write(`data: ${JSON.stringify({ type: 'meta', truncated, selectedSources: selectedSourcesMeta })}\n\n`);
+
+    await askClaude(question, lawTexts, conversationHistory, (chunk) => {
+      res.write(`data: ${JSON.stringify({ type: 'chunk', text: chunk })}\n\n`);
     });
+
+    res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+    res.end();
 
   } catch (error) {
     console.error("Claude API error:", error.message);
-    return res.status(500).json({ success: false, error: "AI service failed" });
+    if (res.headersSent) {
+      res.write(`data: ${JSON.stringify({ type: 'error', error: 'AI service failed' })}\n\n`);
+      res.end();
+    } else {
+      res.status(500).json({ success: false, error: "AI service failed" });
+    }
   }
 };
 

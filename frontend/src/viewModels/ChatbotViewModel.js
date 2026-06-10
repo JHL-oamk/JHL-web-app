@@ -157,35 +157,50 @@ export const useChatbotViewModel = (authViewModel) => {
 
     const isFirstMessage = messages.filter(m => m.role === "user").length === 0;
 
-    // Rakenna väliaikainen userMessage ilman kontekstia
+    // #4 — Conversation context: kerää 4 viimeisintä viestiä (ei WELCOME_VIEW eikä Thinking...)
+    const conversationHistory = messages
+      .filter(m => m.content !== "WELCOME_VIEW" && m.content !== "Thinking...")
+      .slice(-4)
+      .map(m => ({ role: m.role, content: m.content }));
+
     const userMessage = {
       role: "user",
       content: textToSend,
       context: [],
     };
 
-    const updatedMessages = [...messages, userMessage];
-    setMessages([...updatedMessages, { role: "assistant", content: "Thinking..." }]);
+    const messagesBeforeSend = [...messages, userMessage];
+
+    // Lisätään tyhjä assistentin viesti johon streamataan
+    setMessages([...messagesBeforeSend, { role: "assistant", content: "" }]);
     setInput("");
 
     try {
       const { reply: aiReply, sources } = await askClaude(
         textToSend,
-        isFirstMessage ? [] : selectedLaws
+        isFirstMessage ? [] : selectedLaws,
+        conversationHistory,
+        // Streaming: päivitetään viimeisin viesti chunk kerrallaan
+        (chunk) => {
+          setMessages(prev => {
+            const last = prev[prev.length - 1];
+            return [
+              ...prev.slice(0, -1),
+              { ...last, content: last.content + chunk }
+            ];
+          });
+        }
       );
 
-      // Aseta AI:n valitsemat lähteet sidebariin ensimmäisellä kysymyksellä
       if (isFirstMessage && sources && sources.length > 0) {
         const sourceIds = sources.map(s => s.id).filter(Boolean);
         setSelectedLaws(sourceIds);
       }
 
-      // Tallenna käytetyt lähteet userMessage kontekstiin
       const usedSources = sources && sources.length > 0
         ? sources.map(s => ({ id: s.id, title: s.title }))
         : laws.filter(l => selectedLaws.includes(l.id)).map(l => ({ id: l.id, title: l.name }));
 
-      // Päivitä userMessage kontekstilla
       const userMessageWithContext = { ...userMessage, context: usedSources };
 
       const finalMessages = [
@@ -196,9 +211,8 @@ export const useChatbotViewModel = (authViewModel) => {
 
       setMessages(finalMessages);
       await updateChatMessagesApi(activeChatId, finalMessages);
-
-      // Tallenna konteksti myös erilliseen context kenttään Firestoressä
       await updateChatContextApi(activeChatId, usedSources);
+      setSelectedLaws([]);
 
       const chat = chats.find(c => c.id === activeChatId);
       if (chat?.title === "New Chat") {
@@ -208,7 +222,7 @@ export const useChatbotViewModel = (authViewModel) => {
       }
     } catch (error) {
       console.error("AI Request Error:", error);
-      const errorMessages = [...updatedMessages, { role: "assistant", content: "Error processing request." }];
+      const errorMessages = [...messagesBeforeSend, { role: "assistant", content: "Error processing request." }];
       setMessages(errorMessages);
       await updateChatMessagesApi(activeChatId, errorMessages).catch(() => {});
     }

@@ -10,7 +10,7 @@ import colors from '../../config/colors';
 
 const LAW_SOURCES_STORAGE_KEY = 'jhl-law-sources';
 
-const buildCategoriesFromFirestore = (docs) => {
+const buildCategoriesFromFirestore = (docs, tesLinks = {}) => {
   const categoryMap = {};
 
   docs.forEach((doc) => {
@@ -37,7 +37,7 @@ const buildCategoriesFromFirestore = (docs) => {
           title: data.parent,
           title_en: data.parent,
           title_fi: data.parent,
-          url: data.url || '',
+          url: tesLinks[data.parent] || '',
         });
       }
     } else {
@@ -75,10 +75,18 @@ export const LawSources = ({ authViewModel }) => {
     const loadFromFirestore = async () => {
       try {
         setIsLoading(true);
-        const snap = await getDocs(
-          query(collection(db, 'lawSources'), where('active', '==', true))
-        );
-        const built = buildCategoriesFromFirestore(snap.docs);
+
+        const [snap, tesSnap] = await Promise.all([
+          getDocs(query(collection(db, 'lawSources'), where('active', '==', true))),
+          getDocs(collection(db, 'tesParents'))
+        ]);
+
+        const tesLinks = {};
+        tesSnap.docs.forEach(doc => {
+          tesLinks[doc.id] = doc.data().link || '';
+        });
+
+        const built = buildCategoriesFromFirestore(snap.docs, tesLinks);
         setCategories(built);
       } catch (err) {
         console.error('Failed to load law sources:', err);
@@ -92,11 +100,13 @@ export const LawSources = ({ authViewModel }) => {
   }, []);
 
   const getTitle = (item) => {
-    if (lang === 'fi' && item.title_fi) return item.title_fi;
-    if (item.title_en) return item.title_en;
-    return item.title;
+  const translation = t(`law_sources.categories.${item.title}`, { defaultValue: '' });
+  if (translation) return translation;
+  if (lang === 'fi' && item.title_fi) return item.title_fi;
+  if (item.title_en) return item.title_en;
+  return item.title;
   };
-
+  
   const filteredCategories = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return categories;

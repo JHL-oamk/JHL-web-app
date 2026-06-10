@@ -82,7 +82,19 @@
     "source_url": "Source:",
     "source_url_placeholder": "Paste source link here...",
     "upload_file": "Upload file",
-    "disclaimer": "*Please do not upload documents containing sensitive or confidential information."
+    "disclaimer": "*Please do not upload documents containing sensitive or confidential information.",
+    "categories": {
+      "Työehtosopimukset": "Collective Agreements",
+      "Työsuhde": "Employment",
+      "Työaika ja vapaat": "Working Hours & Leave",
+      "Turvallisuus ja tasa-arvo": "Safety & Equality",
+      "Yhteistoiminta": "Cooperation",
+      "Sote-lainsäädäntö": "Social & Health Care Legislation",
+      "Sosiaalipalvelut": "Social Services",
+      "Terveyspalvelut": "Health Services",
+      "Other Documents": "Other Documents",
+      "Muut": "Other"
+    }
   },
   "chatbot": {
     "title": "Legal Chatbot",
