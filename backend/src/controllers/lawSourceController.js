@@ -44,6 +44,9 @@ const uploadLawSourceFileController = async (req, res) => {
     const fileUrl = `/uploads/${req.file.filename}`;
     const filePath = path.join(uploadsDir, req.file.filename);
 
+    // Kategoria frontendistä — jos annettu käytetään sitä
+    const categoryFromFrontend = req.body?.category || null;
+
     try {
       const fileBuffer = fs.readFileSync(filePath);
       const parser = new PDFParse({ data: fileBuffer });
@@ -74,6 +77,7 @@ const uploadLawSourceFileController = async (req, res) => {
         fileName: req.file.originalname,
         content,
         apiContext,
+        category: categoryFromFrontend, // ← käytetään frontendin kategoriaa
         uploadedBy: req.user?.uid,
       });
 

@@ -8,7 +8,7 @@ import { Button } from '../components/Button';
 import { uploadLawSourceFileApi, deleteLawSourceFileApi } from '../../models/lawSourceApi';
 import colors from '../../config/colors';
 
-const LAW_SOURCES_STORAGE_KEY = 'jhl-law-sources';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 const buildCategoriesFromFirestore = (docs, tesLinks = {}) => {
   const categoryMap = {};
@@ -41,15 +41,19 @@ const buildCategoriesFromFirestore = (docs, tesLinks = {}) => {
         });
       }
     } else {
-      // PDF-uploadit tunnistetaan fileUrl-kentän perusteella
-      const isPdf = Boolean(data.fileUrl) || (data.url || '').startsWith('/uploads/');
+      const rawUrl = data.fileUrl || data.url || '';
+      const isPdf = Boolean(data.fileUrl) || rawUrl.startsWith('/uploads/');
+      // Muuta relatiivinen /uploads/-polku täydeksi URL:ksi
+      const fullUrl = rawUrl.startsWith('/uploads/') ? `${API_URL}${rawUrl}` : rawUrl;
+
       categoryMap[cat].sources.push({
         id: doc.id,
         type: isPdf ? 'file' : 'link',
         title: data.title || doc.id,
         title_en: data.title || doc.id,
         title_fi: data.title || doc.id,
-        url: data.fileUrl || data.url || '',
+        url: fullUrl,
+        rawUrl, // säilytetään alkuperäinen poistoa varten
       });
     }
   });
@@ -77,17 +81,12 @@ export const LawSources = ({ authViewModel }) => {
     const loadFromFirestore = async () => {
       try {
         setIsLoading(true);
-
         const [snap, tesSnap] = await Promise.all([
           getDocs(query(collection(db, 'lawSources'), where('active', '==', true))),
           getDocs(collection(db, 'tesParents'))
         ]);
-
         const tesLinks = {};
-        tesSnap.docs.forEach(doc => {
-          tesLinks[doc.id] = doc.data().link || '';
-        });
-
+        tesSnap.docs.forEach(doc => { tesLinks[doc.id] = doc.data().link || ''; });
         const built = buildCategoriesFromFirestore(snap.docs, tesLinks);
         setCategories(built);
       } catch (err) {
@@ -97,7 +96,6 @@ export const LawSources = ({ authViewModel }) => {
         setIsLoading(false);
       }
     };
-
     loadFromFirestore();
   }, []);
 
@@ -140,7 +138,7 @@ export const LawSources = ({ authViewModel }) => {
   const handleAddCategory = () => {
     const title = newCategoryTitle.trim();
     if (!title) return;
-    setCategories((prev) => [{ id: Date.now(), title, title_en: title, title_fi: title, sources: [] }, ...prev]);
+    setCategories((prev) => [{ id: title, title, title_en: title, title_fi: title, sources: [] }, ...prev]);
     setShowAddCategory(false);
     setNewCategoryTitle('');
   };
@@ -158,10 +156,15 @@ export const LawSources = ({ authViewModel }) => {
       .find((category) => category.id === categoryId)
       ?.sources.find((source) => source.id === sourceId);
 
-    // Tunnista PDF /uploads/-polun perusteella
-    if (targetSource?.url?.startsWith('/uploads/')) {
+    // Käytä rawUrl poistoon (relatiivinen polku)
+    const deleteUrl = targetSource?.rawUrl || targetSource?.url || '';
+    if (deleteUrl.includes('/uploads/')) {
       try {
-        await deleteLawSourceFileApi(targetSource.url);
+        // Lähetä vain polku-osa backendille
+        const urlPath = deleteUrl.startsWith('http')
+          ? new URL(deleteUrl).pathname
+          : deleteUrl;
+        await deleteLawSourceFileApi(urlPath);
       } catch (error) {
         toast.error(error.message || 'Failed to delete uploaded file');
         return;
@@ -252,7 +255,8 @@ export const LawSources = ({ authViewModel }) => {
       setUploadErrors((prev) => ({ ...prev, [categoryId]: '' }));
       if (file) {
         setUploadingFiles((prev) => ({ ...prev, [categoryId]: true }));
-        uploadResult = await uploadLawSourceFileApi(file);
+        // Lähetä kategoria uploadiin mukaan
+        uploadResult = await uploadLawSourceFileApi(file, categoryId);
         sourceUrl = uploadResult.fileUrl;
       }
 
@@ -263,7 +267,7 @@ export const LawSources = ({ authViewModel }) => {
         title_en: title || draft.fileName,
         title_fi: title || draft.fileName,
         url: sourceUrl,
-        fileName: draft.fileName || ''
+        rawUrl: uploadResult?.rawFileUrl || sourceUrl,
       };
 
       setCategories((prev) => prev.map((category) => {
@@ -274,9 +278,7 @@ export const LawSources = ({ authViewModel }) => {
         ...prev,
         [categoryId]: { open: false, title: '', url: '', fileName: '', fileUrl: '', file: null }
       }));
-      if (file) {
-        toast.success('PDF uploaded successfully');
-      }
+      if (file) toast.success('PDF uploaded successfully');
     } catch (error) {
       setUploadErrors((prev) => ({ ...prev, [categoryId]: error.message || 'Upload failed' }));
     } finally {
@@ -314,7 +316,6 @@ export const LawSources = ({ authViewModel }) => {
   return (
     <div className="min-h-screen pt-[50px]" style={{ color: colors.black, backgroundColor: colors.white }}>
       <Navbar authViewModel={authViewModel} />
-
       <div className="max-w-[980px] mx-auto px-8 py-10">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -350,13 +351,8 @@ export const LawSources = ({ authViewModel }) => {
               {t('law_sources.add_category')}
             </button>
           )}
-
           {showAddCategory && (
-            <div
-              ref={addCategoryRef}
-              className="mt-2 flex items-center gap-4 rounded-full px-6 py-2 max-w-[560px]"
-              style={{ backgroundColor: colors.lightGrey }}
-            >
+            <div ref={addCategoryRef} className="mt-2 flex items-center gap-4 rounded-full px-6 py-2 max-w-[560px]" style={{ backgroundColor: colors.lightGrey }}>
               <span className="text-xs w-[64px]" style={{ color: colors.darkGrey }}>{t('law_sources.source_title')}</span>
               <input
                 value={newCategoryTitle}
@@ -365,12 +361,7 @@ export const LawSources = ({ authViewModel }) => {
                 className="flex-1 rounded-full px-4 py-2 text-xs outline-none"
                 style={{ backgroundColor: colors.white, color: colors.black }}
               />
-              <button
-                type="button"
-                onClick={handleAddCategory}
-                className="text-xs rounded-full px-4 py-2"
-                style={{ backgroundColor: colors.grey, color: colors.darkGrey }}
-              >
+              <button type="button" onClick={handleAddCategory} className="text-xs rounded-full px-4 py-2" style={{ backgroundColor: colors.grey, color: colors.darkGrey }}>
                 {t('law_sources.add')}
               </button>
             </div>
@@ -386,46 +377,28 @@ export const LawSources = ({ authViewModel }) => {
             return (
               <div key={category.id} className="pb-6">
                 <div className="flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => handleToggleCategory(category.id)}
-                    className="flex items-center gap-4 text-sm font-semibold"
-                    style={{ color: colors.black }}
-                  >
-                    <span className="text-base" style={{ color: colors.grey }}>
-                      {isCollapsed ? '▸' : '▾'}
-                    </span>
+                  <button type="button" onClick={() => handleToggleCategory(category.id)} className="flex items-center gap-4 text-sm font-semibold" style={{ color: colors.black }}>
+                    <span className="text-base" style={{ color: colors.grey }}>{isCollapsed ? '▸' : '▾'}</span>
                     {getTitle(category)}
                   </button>
                   {canDeleteCategory && (
-                    <button type="button" onClick={() => handleDeleteCategory(category.id)} style={{ color: colors.darkGrey }}>
-                      ✕
-                    </button>
+                    <button type="button" onClick={() => handleDeleteCategory(category.id)} style={{ color: colors.darkGrey }}>✕</button>
                   )}
                 </div>
-
                 <div className="mt-2 border-b" style={{ borderColor: colors.grey }} />
-
                 {!isCollapsed && (
                   <>
                     <div className="mt-3">
                       {category.sources.map((source) => renderSource(category.id, source))}
                     </div>
-
                     {isEditMode && (
                       <div className="mt-4">
                         {!draft?.open && (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenSourceDraft(category.id)}
-                            className="flex items-center gap-2 rounded-full px-4 py-2 text-xs"
-                            style={{ backgroundColor: colors.lightGrey, color: colors.darkGrey }}
-                          >
+                          <button type="button" onClick={() => handleOpenSourceDraft(category.id)} className="flex items-center gap-2 rounded-full px-4 py-2 text-xs" style={{ backgroundColor: colors.lightGrey, color: colors.darkGrey }}>
                             <span className="text-sm font-bold">＋</span>
                             {t('law_sources.add_source')}
                           </button>
                         )}
-
                         {draft?.open && (
                           <>
                             <div
@@ -451,32 +424,20 @@ export const LawSources = ({ authViewModel }) => {
                                         className="flex-1 rounded-full px-4 py-2 text-xs outline-none"
                                         style={{ backgroundColor: colors.white, color: colors.black }}
                                       />
-                                      <button
-                                        type="button"
-                                        onClick={() => handleAddSource(category.id)}
-                                        disabled={isUploading}
-                                        className="text-xs rounded-full px-4 py-2"
-                                        style={{ backgroundColor: colors.darkGrey, color: colors.white, opacity: isUploading ? 0.6 : 1 }}
-                                      >
+                                      <button type="button" onClick={() => handleAddSource(category.id)} disabled={isUploading} className="text-xs rounded-full px-4 py-2" style={{ backgroundColor: colors.darkGrey, color: colors.white, opacity: isUploading ? 0.6 : 1 }}>
                                         {isUploading ? 'Uploading…' : t('law_sources.add')}
                                       </button>
                                     </div>
                                     {uploadErrors[category.id] && (
-                                      <div className="mt-2 text-xs" style={{ color: '#c53030' }}>
-                                        {uploadErrors[category.id]}
-                                      </div>
+                                      <div className="mt-2 text-xs" style={{ color: '#c53030' }}>{uploadErrors[category.id]}</div>
                                     )}
                                     <div className="my-3 border-b" style={{ borderColor: colors.grey }} />
                                     <div className="flex items-center gap-5">
                                       <span className="text-xs w-[72px]" style={{ color: colors.darkGrey }}>{t('law_sources.source_url')}</span>
                                       {hasFile ? (
                                         <>
-                                          <a href={draft.fileUrl} target="_blank" rel="noreferrer" className="text-xs underline" style={{ color: colors.link }}>
-                                            {draft.fileName}
-                                          </a>
-                                          <button type="button" onClick={() => handleClearFile(category.id)} className="text-xs" style={{ color: colors.darkGrey }}>
-                                            ✕
-                                          </button>
+                                          <a href={draft.fileUrl} target="_blank" rel="noreferrer" className="text-xs underline" style={{ color: colors.link }}>{draft.fileName}</a>
+                                          <button type="button" onClick={() => handleClearFile(category.id)} className="text-xs" style={{ color: colors.darkGrey }}>✕</button>
                                         </>
                                       ) : (
                                         <>
@@ -488,17 +449,9 @@ export const LawSources = ({ authViewModel }) => {
                                             style={{ backgroundColor: colors.white, color: colors.black }}
                                           />
                                           {!hasLink && (
-                                            <label
-                                              className="text-xs rounded-full px-6 py-2 cursor-pointer"
-                                              style={{ backgroundColor: colors.grey, color: colors.darkGrey }}
-                                            >
+                                            <label className="text-xs rounded-full px-6 py-2 cursor-pointer" style={{ backgroundColor: colors.grey, color: colors.darkGrey }}>
                                               {t('law_sources.upload_file')}
-                                              <input
-                                                type="file"
-                                                accept="application/pdf"
-                                                className="hidden"
-                                                onChange={(event) => handleFileSelect(category.id, event.target.files?.[0])}
-                                              />
+                                              <input type="file" accept="application/pdf" className="hidden" onChange={(event) => handleFileSelect(category.id, event.target.files?.[0])} />
                                             </label>
                                           )}
                                         </>
@@ -508,14 +461,11 @@ export const LawSources = ({ authViewModel }) => {
                                 );
                               })()}
                             </div>
-
                             <div className="mt-3 w-full max-w-[760px] mx-auto">
                               <div className="grid grid-cols-[auto_1fr_auto] items-center">
                                 <div className="w-[72px]" />
                                 <div className="flex justify-center">
-                                  <p className="text-[11px] italic text-center whitespace-nowrap truncate" style={{ color: '#c53030' }}>
-                                    {t('law_sources.disclaimer')}
-                                  </p>
+                                  <p className="text-[11px] italic text-center whitespace-nowrap truncate" style={{ color: '#c53030' }}>{t('law_sources.disclaimer')}</p>
                                 </div>
                                 <div />
                               </div>
