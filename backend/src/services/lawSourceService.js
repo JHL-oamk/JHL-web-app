@@ -26,7 +26,7 @@ const saveLawSource = async ({ docId, title, fileUrl, fileName, content, apiCont
   const apiContextText = (typeof apiContextObj.api_context === 'string') ? apiContextObj.api_context : '';
 
   const docData = {
-    active: Boolean(apiContextObj.active),
+    active: true,
     api_context: apiContextText,
     category: apiContextObj.category || 'Other Documents',
     content: content || '',

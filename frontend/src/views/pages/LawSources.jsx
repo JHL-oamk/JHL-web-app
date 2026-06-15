@@ -41,13 +41,15 @@ const buildCategoriesFromFirestore = (docs, tesLinks = {}) => {
         });
       }
     } else {
+      // PDF-uploadit tunnistetaan fileUrl-kentän perusteella
+      const isPdf = Boolean(data.fileUrl) || (data.url || '').startsWith('/uploads/');
       categoryMap[cat].sources.push({
         id: doc.id,
-        type: 'link',
+        type: isPdf ? 'file' : 'link',
         title: data.title || doc.id,
         title_en: data.title || doc.id,
         title_fi: data.title || doc.id,
-        url: data.url || '',
+        url: data.fileUrl || data.url || '',
       });
     }
   });
@@ -100,24 +102,24 @@ export const LawSources = ({ authViewModel }) => {
   }, []);
 
   const getTitle = (item) => {
-  const translation = t(`law_sources.categories.${item.title}`, { defaultValue: '' });
-  if (translation) return translation;
-  if (lang === 'fi' && item.title_fi) return item.title_fi;
-  if (item.title_en) return item.title_en;
-  return item.title;
+    const translation = t(`law_sources.categories.${item.title}`, { defaultValue: '' });
+    if (translation) return translation;
+    if (lang === 'fi' && item.title_fi) return item.title_fi;
+    if (item.title_en) return item.title_en;
+    return item.title;
   };
-  
+
   const filteredCategories = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return categories;
+    const q = search.trim().toLowerCase();
+    if (!q) return categories;
     return categories
       .map((category) => {
-        const categoryMatch = category.title.toLowerCase().includes(query)
-          || category.title_fi?.toLowerCase().includes(query)
-          || category.title_en?.toLowerCase().includes(query);
+        const categoryMatch = category.title.toLowerCase().includes(q)
+          || category.title_fi?.toLowerCase().includes(q)
+          || category.title_en?.toLowerCase().includes(q);
         const matchingSources = category.sources.filter((source) => {
           const haystack = `${source.title} ${source.title_fi || ''} ${source.title_en || ''} ${source.url || ''}`.toLowerCase();
-          return haystack.includes(query);
+          return haystack.includes(q);
         });
         return { ...category, sources: categoryMatch ? category.sources : matchingSources };
       })
@@ -156,7 +158,8 @@ export const LawSources = ({ authViewModel }) => {
       .find((category) => category.id === categoryId)
       ?.sources.find((source) => source.id === sourceId);
 
-    if (targetSource?.type === 'file' && targetSource.url) {
+    // Tunnista PDF /uploads/-polun perusteella
+    if (targetSource?.url?.startsWith('/uploads/')) {
       try {
         await deleteLawSourceFileApi(targetSource.url);
       } catch (error) {

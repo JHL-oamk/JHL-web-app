@@ -319,4 +319,37 @@ const selectRelevantSources = async (question, sources) => {
   }
 };
 
-module.exports = { askClaude, selectRelevantSources };
+// Generoi api_context automaattisesti PDF-uploadille
+const generateApiContext = async (text, fileName, fileUrl) => {
+  try {
+    const message = await client.messages.create({
+      model: FAST_MODEL,
+      max_tokens: 500,
+      temperature: 0.1,
+      messages: [{
+        role: "user",
+        content: `Lue seuraava suomalainen lakiteksti tai asiakirja ja kirjoita lyhyt api_context-kuvaus suomeksi.
+Kuvauksen tulee kertoa mitä kysymyksiä tästä lähteestä voi vastata.
+Palauta VAIN JSON-objekti ilman markdownia:
+{"api_context": "...", "category": "...", "language": "fi", "active": true, "type": "law"}
+
+Tiedosto: ${fileName}
+Teksti: ${text.slice(0, 5000)}`
+      }]
+    });
+
+    const raw = message.content[0].text.trim().replace(/```json|```/g, '').trim();
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error("generateApiContext failed:", err.message);
+    return {
+      api_context: `Lähde: ${fileName}`,
+      category: 'Muut asiakirjat',
+      language: 'fi',
+      active: true,
+      type: 'law',
+    };
+  }
+};
+
+module.exports = { askClaude, selectRelevantSources, generateApiContext };
