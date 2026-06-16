@@ -14,7 +14,10 @@ const adminRoutes = require('./routes/adminRoutes');
 const app = express();
 
 const corsOptions = {
-  origin: 'http://localhost:3000',
+  origin: [
+    'http://localhost:3000',
+    'https://jhl-project-4ff62.web.app'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 };
