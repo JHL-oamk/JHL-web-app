@@ -9,9 +9,12 @@ const getAuthHeaders = async () => {
   };
 };
 
-export const uploadLawSourceFileApi = async (file) => {
+export const uploadLawSourceFileApi = async (file, category = null) => {
   const formData = new FormData();
   formData.append('file', file);
+  if (category) {
+    formData.append('category', category); // ← lähetä kategoria backendille
+  }
 
   const response = await fetch(`${API_URL}/api/law-sources/upload`, {
     method: 'POST',
@@ -27,7 +30,8 @@ export const uploadLawSourceFileApi = async (file) => {
   const responseBody = await response.json();
   return {
     ...responseBody,
-    fileUrl: `${API_URL}${responseBody.fileUrl}`,
+    fileUrl: `${API_URL}${responseBody.fileUrl}`,   // täysi URL React-statea varten
+    rawFileUrl: responseBody.fileUrl,                // relatiivinen polku poistoa varten
   };
 };
 

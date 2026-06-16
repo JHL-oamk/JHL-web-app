@@ -82,15 +82,29 @@
     "source_url": "Lähde:",
     "source_url_placeholder": "Liitä lähteen linkki tähän...",
     "upload_file": "Lataa tiedosto",
-    "disclaimer": "*Älä lataa asiakirjoja, jotka sisältävät arkaluonteisia tai luottamuksellisia tietoja."
+    "disclaimer": "*Älä lataa asiakirjoja, jotka sisältävät arkaluonteisia tai luottamuksellisia tietoja.",
+    "categories": {
+      "Työehtosopimukset": "Työehtosopimukset",
+      "Työsuhde": "Työsuhde",
+      "Työaika ja vapaat": "Työaika ja vapaat",
+      "Turvallisuus ja tasa-arvo": "Turvallisuus ja tasa-arvo",
+      "Yhteistoiminta": "Yhteistoiminta",
+      "Sote-lainsäädäntö": "Sote-lainsäädäntö",
+      "Sosiaalipalvelut": "Sosiaalipalvelut",
+      "Terveyspalvelut": "Terveyspalvelut",
+      "Other Documents": "Muut asiakirjat",
+      "Muut": "Muut"
+    }
   },
   "chatbot": {
     "title": "Lakiavustaja",
     "welcome_title": "Hei! Olen lakiavustajasi, miten voin auttaa sinua tänään?",
     "welcome_subtitle": "Aloita nopeasti valitsemalla aihe alta...",
     "suggestions": [
-      "Kerro jotain Suomen työlainsäädännöstä...",
-      "Mitä minun pitäisi tehdä, jos minulla on lakiongelma työpaikalla?..."
+      "Mikä on ylityökorvaukseni HYVTES:n mukaan?",
+      "Kuinka pitkä vuosilomani on?",
+      "Voiko työnantaja irtisanoa minut ilman varoitusta?",
+      "Mitä teen jos koen epätasa-arvoista kohtelua työpaikalla?"
     ],
     "selected_sources": "Valittu",
     "sources_label": "lähdettä",

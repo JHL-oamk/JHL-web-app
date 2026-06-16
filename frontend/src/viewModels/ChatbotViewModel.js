@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
-import { lawsList } from "../models/ChatbotModel";
 import { logoutApi } from "../models/authApi";
 import { askClaude } from "../models/ClaudeApi";
 import {
@@ -10,6 +11,7 @@ import {
   getChatApi,
   updateChatMessagesApi,
   updateChatTitleApi,
+  updateChatContextApi,
   deleteChatApi,
   updateChatFolderApi,
 } from "../models/chatApi";
@@ -35,11 +37,61 @@ export const useChatbotViewModel = (authViewModel) => {
   const [showChatHistory, setShowChatHistory] = useState(true);
   const [showFolders, setShowFolders] = useState(true);
   const [showLawSource, setShowLawSource] = useState(true);
+  const [laws, setLaws] = useState([]);
 
-  const laws = lawsList;
   const authUser = authViewModel?.user;
+  const isFirstUserMessage = messages.filter(m => m.role === "user").length === 0;
 
-  // ---------------- LOAD ON MOUNT ----------------
+  // ---------------- LOAD LAWS FROM FIRESTORE ----------------
+  useEffect(() => {
+    const loadLaws = async () => {
+      try {
+        const snap = await getDocs(
+          query(collection(db, 'lawSources'), where('active', '==', true))
+        );
+
+        const lawItems = [];
+        const seenParents = new Set();
+
+        snap.docs.forEach(doc => {
+          const data = doc.data();
+          if (data.type === 'tes_chunk') {
+            if (!seenParents.has(data.parent)) {
+              seenParents.add(data.parent);
+              lawItems.push({
+                id: `tes:${data.parent}`,
+                name: data.parent,
+                name_fi: data.parent,
+                name_en: data.parent,
+                category: data.category || 'Työehtosopimukset',
+                category_fi: data.category || 'Työehtosopimukset',
+                category_en: 'Collective Agreements',
+                link: data.url || '',
+              });
+            }
+          } else {
+            lawItems.push({
+              id: doc.id,
+              name: data.title || doc.id,
+              name_fi: data.title || doc.id,
+              name_en: data.title || doc.id,
+              category: data.category || 'Muut',
+              category_fi: data.category || 'Muut',
+              category_en: data.category || 'Other',
+              link: data.url || '',
+            });
+          }
+        });
+
+        setLaws(lawItems);
+      } catch (err) {
+        console.error("Failed to load laws:", err);
+      }
+    };
+    loadLaws();
+  }, []);
+
+  // ---------------- LOAD CHATS & FOLDERS ON MOUNT ----------------
   useEffect(() => {
     if (!authUser?.uid) return;
     const loadData = async () => {
@@ -75,6 +127,7 @@ export const useChatbotViewModel = (authViewModel) => {
     setChats(prev => [{ id: chatId, title: "New Chat", folderId: null, messages: welcomeMessages }, ...prev]);
     setCurrentChatId(chatId);
     setMessages(welcomeMessages);
+    setSelectedLaws([]);
     try { await createChatApi(chatId, "New Chat"); }
     catch (err) { console.error("Failed to create chat:", err); }
   };
@@ -102,29 +155,65 @@ export const useChatbotViewModel = (authViewModel) => {
       catch (err) { console.error("Failed to create chat:", err); }
     }
 
-    // Konteksti tallennetaan per viesti
-    const contextLaws = laws
-      .filter(l => selectedLaws.includes(l.id))
-      .map(l => ({ name: l.name, link: l.link }));
+    const isFirstMessage = messages.filter(m => m.role === "user").length === 0;
+
+    // #4 — Conversation context: kerää 4 viimeisintä viestiä (ei WELCOME_VIEW eikä Thinking...)
+    const conversationHistory = messages
+      .filter(m => m.content !== "WELCOME_VIEW" && m.content !== "Thinking...")
+      .slice(-4)
+      .map(m => ({ role: m.role, content: m.content }));
 
     const userMessage = {
       role: "user",
       content: textToSend,
-      context: contextLaws, // ← tallennetaan tähän viestiin
+      context: [],
     };
 
-    const updatedMessages = [...messages, userMessage];
-    setMessages([...updatedMessages, { role: "assistant", content: "Thinking..." }]);
+    const messagesBeforeSend = [...messages, userMessage];
+
+    // Lisätään tyhjä assistentin viesti johon streamataan
+    setMessages([...messagesBeforeSend, { role: "assistant", content: "" }]);
     setInput("");
 
     try {
-      const aiReply = await askClaude(textToSend, selectedLaws);
-      const finalMessages = [...updatedMessages, { role: "assistant", content: aiReply }];
+      const { reply: aiReply, sources } = await askClaude(
+        textToSend,
+        isFirstMessage ? [] : selectedLaws,
+        conversationHistory,
+        // Streaming: päivitetään viimeisin viesti chunk kerrallaan
+        (chunk) => {
+          setMessages(prev => {
+            const last = prev[prev.length - 1];
+            return [
+              ...prev.slice(0, -1),
+              { ...last, content: last.content + chunk }
+            ];
+          });
+        }
+      );
+
+      if (isFirstMessage && sources && sources.length > 0) {
+        const sourceIds = sources.map(s => s.id).filter(Boolean);
+        setSelectedLaws(sourceIds);
+      }
+
+      const usedSources = sources && sources.length > 0
+        ? sources.map(s => ({ id: s.id, title: s.title }))
+        : laws.filter(l => selectedLaws.includes(l.id)).map(l => ({ id: l.id, title: l.name }));
+
+      const userMessageWithContext = { ...userMessage, context: usedSources };
+
+      const finalMessages = [
+        ...messages,
+        userMessageWithContext,
+        { role: "assistant", content: aiReply }
+      ];
+
       setMessages(finalMessages);
-
       await updateChatMessagesApi(activeChatId, finalMessages);
+      await updateChatContextApi(activeChatId, usedSources);
+      setSelectedLaws([]);
 
-      // Auto-title
       const chat = chats.find(c => c.id === activeChatId);
       if (chat?.title === "New Chat") {
         const autoTitle = textToSend.slice(0, 40);
@@ -133,7 +222,7 @@ export const useChatbotViewModel = (authViewModel) => {
       }
     } catch (error) {
       console.error("AI Request Error:", error);
-      const errorMessages = [...updatedMessages, { role: "assistant", content: "Error processing request." }];
+      const errorMessages = [...messagesBeforeSend, { role: "assistant", content: "Error processing request." }];
       setMessages(errorMessages);
       await updateChatMessagesApi(activeChatId, errorMessages).catch(() => {});
     }
@@ -164,7 +253,11 @@ export const useChatbotViewModel = (authViewModel) => {
     setChats(remaining);
     if (currentChatId === chatId) {
       if (remaining.length > 0) handleSelectChat(remaining[0].id);
-      else { setCurrentChatId(null); setMessages([{ role: "assistant", content: "WELCOME_VIEW" }]); }
+      else {
+        setCurrentChatId(null);
+        setMessages([{ role: "assistant", content: "WELCOME_VIEW" }]);
+        setSelectedLaws([]);
+      }
     }
     try { await deleteChatApi(chatId); }
     catch (err) { console.error("Failed to delete chat:", err); }
@@ -212,7 +305,7 @@ export const useChatbotViewModel = (authViewModel) => {
   return {
     chats, folders, messages, currentChatId, openChatMenuId, openFolderId,
     chatSearch, input, selectedLaws, showChatHistory, showFolders, showLawSource,
-    laws, authUser,
+    laws, authUser, isFirstUserMessage,
     setChats, setFolders, setMessages,
     setCurrentChatId: handleSelectChat,
     setOpenChatMenuId, setOpenFolderId, setChatSearch, setInput, setSelectedLaws,

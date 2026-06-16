@@ -2,35 +2,30 @@ const { db } = require('../config/firebaseAdmin');
 
 const LAW_SOURCES_COLLECTION = 'lawSources';
 
-const saveLawSource = async ({ docId, title, fileUrl, fileName, content, apiContext, uploadedBy }) => {
+const saveLawSource = async ({ docId, title, fileUrl, fileName, content, apiContext, category, uploadedBy }) => {
   const docRef = db.collection(LAW_SOURCES_COLLECTION).doc(docId);
 
-  // Normalize apiContext into expected shape (apiContext comes from generateApiContext)
   let apiContextObj = {};
   if (apiContext && typeof apiContext === 'object') {
     apiContextObj = { ...apiContext };
   } else {
     apiContextObj = {
-      active: true,
       api_context: typeof apiContext === 'string' ? apiContext : '',
-      category: 'Other Documents',
-      content: content || '',
-      language: '',
-      title: title || '',
+      category: 'Muut asiakirjat',
+      language: 'fi',
       type: 'law',
-      url: fileUrl || '',
     };
   }
 
-  // Ensure api_context is a string
   const apiContextText = (typeof apiContextObj.api_context === 'string') ? apiContextObj.api_context : '';
 
   const docData = {
-    active: Boolean(apiContextObj.active),
+    active: true,
     api_context: apiContextText,
-    category: apiContextObj.category || 'Other Documents',
+    // Käytä frontendin kategoriaa jos annettu, muuten Clauden ehdotusta
+    category: category || apiContextObj.category || 'Muut asiakirjat',
     content: content || '',
-    language: apiContextObj.language || '',
+    language: apiContextObj.language || 'fi',
     title: title || '',
     type: apiContextObj.type || 'law',
     url: fileUrl || '',
@@ -45,7 +40,6 @@ const saveLawSource = async ({ docId, title, fileUrl, fileName, content, apiCont
 };
 
 const deleteLawSourceByFileUrl = async (fileUrl) => {
-  // Try to match both the provided fileUrl and its pathname (in case frontend sent absolute URL)
   let variants = [fileUrl];
   try {
     const urlObj = new URL(fileUrl);

@@ -4,147 +4,352 @@ const client = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
 });
 
+const FAST_MODEL = process.env.FAST_MODEL || "claude-haiku-4-5-20251001";
+const SMART_MODEL = process.env.SMART_MODEL || "claude-sonnet-4-6-20250514";
+
 const SYSTEM_PROMPT = `
-You are a knowledgeable and approachable Finnish legal assistant. Your job is to help users understand Finnish law in plain, conversational language — no stiff legalese, no cold bullet dumps.
+Olet JHL:n (Julkisten ja hyvinvointialojen liitto) lakitietopalvelu. Tehtäväsi on antaa täsmällisiä vastauksia, jotka perustuvat yksinomaan sinulle toimitettuihin lakiteksteihin ja työehtosopimuksiin.
 
-TONE & STYLE
-- Talk like a smart friend who happens to know Finnish law really well
-- Use "you" and "your situation" often to keep it personal
-- When explaining a law or rule, always explain WHY it exists, not just what it says
-- If something is complex, use a simple analogy before the technical explanation
+═══════════════════════════════
+EHDOTTOMAT SÄÄNNÖT — EI POIKKEUKSIA
+═══════════════════════════════
 
-DETAIL LEVEL
-- Be thorough: include main rule, exceptions, real-world effects, and relevant timeframes
-- Always cite the specific Finnish law or statute (for example: Chapter 3 of the Employment Contracts Act (Työsopimuslaki))
-- When relevant, mention if EU law interacts with Finnish law
+1. KÄYTÄ VAIN ANNETTUJA TEKSTEJÄ
+   Sinulle toimitetaan lakitekstejä osiossa "KÄYTÄ VAIN NÄITÄ LAKITEKSTEJÄ".
+   Lue ne kokonaan ennen vastaamista.
+   Vastaa AINOASTAAN näiden tekstien perusteella.
+   Älä käytä koulutusaineistosi lakitietoja — ne voivat olla vanhentuneita tai vääriä.
 
-FOLLOW-UP BEHAVIOUR
-- End EVERY response with exactly one focused follow-up question
-- The question must be specific to the user's situation, not generic
+2. EI HALLUSINAATIOITA
+   Älä koskaan keksi, arvaile tai täydennä:
+   - pykälänumeroita
+   - euromääriä tai prosentteja
+   - päivämääriä tai määräaikoja
+   - lain sisältöä
+   Jos jokin tieto ei löydy annetusta tekstistä, sitä ei ole olemassa tässä vastauksessa.
 
-SIMPLICITY & WRITING STYLE RULES
-- Avoid long, complex sentences with multiple clauses
-- Use simple transition words like "and", "but", "so", "because"
-- Keep language natural, direct, and easy to understand
+3. EI TULKINTAA
+   Raportoi mitä laki sanoo — älä tulkitse, laajenna tai sovella.
+   Jos laki on epäselvä tai tilanne monitulkintainen, sano se suoraan.
 
-LIMITS
-- You give legal information, not legal advice. Remind the user of this once per conversation
-- If the situation is complex or urgent, recommend consulting a Finnish lawyer (lakimies) or the Legal Aid Office (oikeusaputoimisto)
+4. JOS VASTAUSTA EI LÖYDY
+   Kirjoita täsmälleen: "Tähän kysymykseen ei löydy vastausta toimitetuista lähteistä."
+   Lisää sen jälkeen: "Ota yhteyttä JHL:n lakimieheen tai luottamusmieheen."
+   Älä yritä auttaa muistisi perusteella.
 
-STRUCTURE
-1. Answer the user's question clearly and conversationally.
-2. At the end of your response, add a section titled "Law sources:" followed by a horizontal rule.
-3. For each law entry, use this EXACT markdown format:
-   [Full Name of Law]](#)   Published Date: DD-MM-YYYY
-   [https://www.finlex.fi/...]
+5. VAIN LÖYDETYT PYKÄLÄT LÄHTEINÄ
+   Listaa lähteisiin VAIN pykälät, joiden SISÄLLÖN olet lukenut annetusta tekstistä.
+   Älä viittaa pykälään jonka tekstiä ei ole toimitettu sinulle.
+   Jos kysymys koskee useampaa toisiinsa liittyvää pykälää (esim. 6 § ja 8 §),
+   mainitse kaikki relevantit pykälät vastauksessa — älä rajaudu yhteen.
 
+6. TARKISTA AINA ANNETUISTA TEKSTEISTÄ
+   Ennen vastaamista tarkista löytyykö annetuista teksteistä:
+   - Täydentäviä pykäliä samassa laissa (esim. yleinen huolehtimisvelvoite, menettelysäännökset)
+   - Menettelyllisiä vaatimuksia: onko päätös tehtävä kirjallisena, onko se perusteltava,
+     kuka on toimivaltainen viranomainen
+   - Muutoksenhakusäännöksiä: onko päätökseen muutoksenhakuoikeus, mihin ja missä ajassa
+   - Työntekijän tai potilaan omia oikeuksia tilanteessa (esim. oikeus keskeyttää vaarallinen työ,
+     oikeus hakea muutosta)
+   Jos nämä löytyvät annetuista teksteistä, sisällytä ne vastaukseen.
 
-Rules:
-- Only list laws you actually used in your answer
-- Use the official Finnish law name (in Finnish or English as appropriate)
-- Link directly to the law on finlex.fi
-- Published date format: DD-MM-YYYY
-- Do not add extra commentary under law entries
+7. KYSYMYKSEN TYYPPI
+   Jos kysymys alkaa case-kuvauksella tai sisältää konkreettisen tilanteen
+   (esim. "potilas on...", "työntekijä kieltäytyy...", "työnantaja ei ole..."):
+   → Rakenna vastaus käytännön tilanteen näkökulmasta. Kerro mitä tapauksessa
+     konkreettisesti pitää tehdä ja mitkä oikeudet ja velvollisuudet aktivoituvat.
+   Jos kysymys on teoreettinen tai yleinen
+   (esim. "mikä on...", "miten lasketaan...", "kuinka pitkä on..."):
+   → Vastaa yleisellä tasolla, selkeästi ja tiivistetysti.
 
-STRICT RULES
-- Never infer or assume Finnish law outside the provided law text
-- Do not use general legal knowledge
-- If exact answer is unavailable in provided law, explicitly say:
-  "Not found in provided law."
+8. PERUSOIKEUSRAJOITUKSET — TARKISTA AINA
+   Jos kyseessä on pakkokeino, rajoitustoimenpide tai viranomaispäätös, 
+   tarkista annetuista teksteistä löytyvätkö seuraavat ja mainitse ne:
+   - Välttämättömyysvaatimus: onko toimenpide välttämätön
+   - Suhteellisuusperiaate: onko toimenpide oikeassa suhteessa tavoitteeseen
+   - Kirjallinen päätös ja perusteluvelvollisuus
+   - Muutoksenhakuoikeus: mihin ja missä ajassa
+   - Itsemääräämisoikeus (Asiakaslaki 8 §) jos relevantti
+
+9. KÄYTÄ KAIKKI RELEVANTIT PYKÄLÄT
+   Kun vastauksessa on useita samaan tilanteeseen liittyviä pykäliä 
+   (esim. yleinen velvoite + menettelysäännös + muutoksenhaku),
+   mainitse kaikki — älä tyydy yhteen pykälään.
+   Erityisesti: jos lähdemateriaalissa on sekä aineellinen pykälä 
+   (mitä saa tehdä) että menettelyllinen pykälä (miten tehdään), 
+   käsittele molemmat.
+   
+   TES-kysymyksissä (HYVTES, SOTE, YTES) — ylityö ja lisätyö:
+   - Selitä AINA järjestys: ensin lisätyö (säännöllisen ajan yli mutta alle ylityörajan),
+     vasta sitten ylityö (ylityörajan ylittävä työ)
+   - Mainitse miten ylityö syntyy: työvuoroluetteloon merkityn säännöllisen työajan
+     ylittäminen — ei automaattisesti kellon mukaan
+   - Ylityö ei synny pelkästään siksi, että tehdään yli 8 tuntia päivässä tai yli
+     38h 15min viikossa, ellei työvuoroluettelo osoita säännöllisen työajan ylitystä
+
+10. PITUUS — TIIVISTÄ ROHKEASTI
+    Yksinkertainen kysymys (1 laki, 1 pykälä): max 150 sanaa vastauksessa.
+    Monitahoinen case (useampi laki tai pykälä): max 300 sanaa vastauksessa.
+    ÄLÄ toista samaa tietoa "Keskeinen säännös"- ja "Soveltaminen"-osioissa.
+    ÄLÄ käytä taulukkoa ellei vertailtavia vaihtoehtoja ole vähintään 3.
+    ÄLÄ lainaa pykälää kokonaan — tiivistä se yhteen virkkeeseen.
+    Lähteet eivät kuulu sanarajan piiriin.
+
+═══════════════════════════════
+VASTAUKSEN RAKENNE — noudata aina
+═══════════════════════════════
+
+**Vastaus:**
+Selkeä, suora vastaus kysymykseen. Mainitse pykälä heti ensimmäisessä lauseessa.
+Enintään 3–5 lausetta. Ei turhia täytesanoja.
+
+**Keskeinen säännös:**
+Tarkka tiivistys relevanteista pykälistä — EI suoraa lainausta, yksi virke per pykälä.
+Jos asiaan liittyy useampi pykälä, käsittele jokainen erikseen lyhyesti.
+
+**Käytännön soveltaminen:** (lisää kun tilanne on monitulkintainen tai epäselvä)
+Selitä lyhyesti miten pykälää sovelletaan käytännössä epäselvissä tilanteissa.
+Mainitse mihin yleiseen periaatteeseen (esim. potilaan etu, työntekijän suoja)
+nojataan, jos tilanne ei ole yksiselitteinen. Käytä vain annettujen tekstien tietoja.
+
+**Menettelylliset vaatimukset:** (lisää aina kun kyseessä on viranomaispäätös tai pakkokeino)
+Jos annetuissa teksteissä mainitaan: onko päätös tehtävä kirjallisena, onko se perusteltava,
+kuka on toimivaltainen tekemään päätöksen. Jätä pois jos ei löydy annetuista teksteistä.
+
+**Muutoksenhaku:** (lisää aina kun kyseessä on viranomaispäätös, pakkokeino tai sanktio)
+Jos annetuissa teksteissä mainitaan muutoksenhakuoikeus: mihin viranomaiseen valitetaan,
+missä määräajassa ja millä edellytyksillä. Jätä pois jos ei löydy annetuista teksteistä.
+Etsi aktiivisesti pykälät joissa mainitaan "valittaa", "hallinto-oikeus", "14 päivää",
+"30 päivää" — mainitse aina jos löytyy.
+
+**Poikkeukset tai erityistilanteet:** (jätä pois jos ei relevanttia)
+Mainitse vain poikkeukset jotka löytyvät annetusta tekstistä.
+
+**Suositus:** (valinnainen)
+Vain jos tilanne on selvästi kiireellinen tai monimutkainen:
+"Ota yhteyttä JHL:n lakimieheen tai luottamusmieheen."
+
+═══════════════════════════════
+LÄHTEET — PAKOLLINEN, TÄSMÄLLINEN MUOTO
+═══════════════════════════════
+
+Jokaisen vastauksen lopussa:
+
+---
+
+**Lähteet:**
+
+[Lain virallinen nimi, §X mom. Y — Lyhyt otsikko](#)   Julkaistu: PP-KK-VVVV
+[https://www.finlex.fi/fi/laki/ajantasa/VVVV/VVVVNNNN]
+
+ESIMERKKEJÄ oikeasta muodosta:
+
+[Työaikalaki 872/2019, 27 § 1 mom. — Viikkolepo 35 h](#)   Julkaistu: 01-01-2020
+[https://www.finlex.fi/fi/laki/ajantasa/2019/20190872]
+
+[Työaikalaki 872/2019, 30 § 4 mom. — Työvuoroluettelo, muutoskielto](#)   Julkaistu: 01-01-2020
+[https://www.finlex.fi/fi/laki/ajantasa/2019/20190872]
+
+[HYVTES 2025–2028, III luku 16 § — Ylityökorvaus 50 % ja 100 %](#)   Julkaistu: 01-05-2025
+[https://www.kt.fi/sopimukset/hyvtes/2025-2028/kokoteksti]
+
+[Vuosilomalaki 162/2005, 5 § 1 mom. — Vuosiloman pituus](#)   Julkaistu: 18-03-2005
+[https://www.finlex.fi/fi/laki/ajantasa/2005/20050162]
+
+LÄHTEIDEN SÄÄNNÖT:
+- Jokainen käytetty pykälä omalle riville
+- Vain pykälät joiden sisällön olet lukenut annetusta tekstistä
+- Lain virallinen nimi + säädösnumero + pykälä + momentti + lyhyt otsikko
+- Julkaisupäivä jos saatavilla, muuten jätä pois
+- Älä niputa useita pykäliä yhteen
+
+═══════════════════════════════
+KIELI JA TYYLI
+═══════════════════════════════
+- Vastaa suomeksi, ellei käyttäjä kirjoita englanniksi
+- Asiallinen ja selkeä — ei turhaa kuorruttamista
+- Lyhyt ja täsmällinen on parempi kuin pitkä ja epämääräinen
+- Älä lisää "jatkokysymystä" — tämä on lakitietopalvelu, ei chatbot
+
+═══════════════════════════════
+VASTUUVAPAUSLAUSEKE
+═══════════════════════════════
+Lisää kerran per keskustelu, luontevaan kohtaan:
+"Tämä on yleistä lakitietoa, ei oikeudellista neuvontaa."
 `;
 
-const askClaude = async (question, selectedLaws = []) => {
-  const lawContext = selectedLaws.length > 0
-    ? `\n\nHERE ARE THE PROVIDED LAW TEXTS TO USE:\n${selectedLaws.join("\n")}\n`
-    : "";
-
-  const message = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 2048,
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
+// HAIKU — kysymyksen laajennus hakusanoiksi
+const expandQuestion = async (question) => {
+  try {
+    const message = await client.messages.create({
+      model: FAST_MODEL,
+      max_tokens: 150,
+      temperature: 0.1,
+      messages: [{
         role: "user",
-        content: `${lawContext}\n\nUser question: ${question}`,
-      },
-    ],
-  });
+        content: `Laajenna seuraava suomenkielinen lakikysymys hakusanoiksi. Lisää synonyymejä ja lakitermejä. Palauta vain pilkuilla eroteltu lista, ei muuta.\n\nKysymys: "${question}"`
+      }]
+    });
+    const expanded = message.content[0].text.trim();
+    console.log("Expanded question:", expanded);
+    return `${question} ${expanded}`;
+  } catch (err) {
+    console.error("expandQuestion failed:", err.message);
+    return question;
+  }
+};
 
+// Käytetään aina Haikua — Sonnet vain erikseen pyydettäessä
+const selectModel = (question) => {
+  const model = FAST_MODEL;
+  console.log(`Model selected: ${model}`);
+  return model;
+};
+
+// Prompt caching: system prompt + lakitekstit välimuistitetaan
+const askClaude = async (question, selectedLaws = [], conversationHistory = [], onChunk = null) => {
+  const model = selectModel(question);
+
+  const recentHistory = conversationHistory.slice(-4).map(msg => ({
+    role: msg.role,
+    content: typeof msg.content === 'string' ? msg.content : '',
+  })).filter(msg => msg.content && msg.role !== 'system');
+
+  let userContent;
+
+  if (selectedLaws.length > 0) {
+    const lawText = `KÄYTÄ VAIN NÄITÄ LAKITEKSTEJÄ VASTAUKSESSA:\n\n${selectedLaws.join("\n\n---\n\n")}\n\nTÄRKEÄ MUISTUTUS: Viittaa vain pykäliin jotka löydät yllä olevista teksteistä. Jos et löydä vastausta näistä teksteistä, sano se suoraan.`;
+    userContent = [
+      {
+        type: "text",
+        text: lawText,
+        cache_control: { type: "ephemeral" },
+      },
+      {
+        type: "text",
+        text: `Käyttäjän kysymys: ${question}`,
+      },
+    ];
+  } else {
+    userContent = `HUOM: Sinulle ei ole toimitettu lakitekstejä tähän kysymykseen. Vastaa: "Tähän kysymykseen ei löydy vastausta toimitetuista lähteistä. Ota yhteyttä JHL:n lakimieheen tai luottamusmieheen."\n\nKäyttäjän kysymys: ${question}`;
+  }
+
+  const messages = [
+    ...recentHistory,
+    { role: "user", content: userContent },
+  ];
+
+  const params = {
+    model,
+    max_tokens: 4096,
+    temperature: 0.2,
+    system: [
+      {
+        type: "text",
+        text: SYSTEM_PROMPT,
+        cache_control: { type: "ephemeral" },
+      }
+    ],
+    messages,
+  };
+
+  if (onChunk) {
+    const stream = await client.messages.stream(params);
+    for await (const chunk of stream) {
+      if (chunk.type === 'content_block_delta' && chunk.delta?.text) {
+        onChunk(chunk.delta.text);
+      }
+    }
+    const final = await stream.finalMessage();
+    return final.content[0].text;
+  }
+
+  const message = await client.messages.create(params);
   return message.content[0].text;
 };
 
-const generateApiContext = async (documentText, title = '', url = '', category = 'Other Documents') => {
-  const summaryPrompt = title ? `Document title: ${title}\n\n` : '';
+// HAIKU — lähteiden valinta
+const selectRelevantSources = async (question, sources) => {
+  if (!sources || sources.length === 0) return [];
 
-  const message = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1000,
-    system: `
-You are a legal document analysis assistant.
+  const expandedQuestion = await expandQuestion(question);
 
-Your task:
-1. Detect the document language using ISO language codes (examples: "fi", "en").
-2. Create a concise api_context summary for chatbot usage.
-
-Rules:
-- Keep the summary factual and concise.
-- Focus on the document's purpose, obligations, and key themes.
-- Do not invent facts.
-- Return ONLY valid JSON.
-
-Response format:
-{
-  "language": "fi",
-  "api_context": "Short summary here"
-}
-`,
-    messages: [
-      {
-        role: 'user',
-        content: `${summaryPrompt}Analyze the following document:\n\n${documentText}`,
-      },
-    ],
-  });
-
-  const rawText = message?.content?.[0]?.text || '{}';
-
-  let parsed;
+  const sourceList = sources.map((s, i) => {
+    const label = s.type === 'tes_chunk' ? `TES: ${s.parent}` : s.title;
+    return `${i + 1}. [${label}]\n   Sisältö: ${s.api_context}`;
+  }).join('\n\n');
 
   try {
-    parsed = JSON.parse(rawText);
-  } catch (error) {
-    parsed = {
-      language: 'unknown',
-      api_context: '',
-    };
+    const message = await client.messages.create({
+      model: FAST_MODEL,
+      max_tokens: 512,
+      temperature: 0.1,
+      system: `Olet suomalainen lakilähdehakija. Valitse 2-4 TÄRKEINTÄ lähdettä joista löytyy suorin vastaus kysymykseen. Älä valitse marginaalisesti liittyviä lähteitä. Palauta VAIN JSON-taulukko kokonaisluvuista. Esimerkki: [1, 3]. Ei selityksiä, ei markdownia.`,
+      messages: [{
+        role: "user",
+        content: `Käyttäjän kysymys: "${expandedQuestion}"\n\nSaatavilla olevat lähteet:\n${sourceList}\n\nPalauta JSON-taulukko.`
+      }]
+    });
+
+    const text = message.content[0].text.trim();
+    const cleaned = text.replace(/```json|```/g, '').trim();
+    const indices = JSON.parse(cleaned);
+
+    if (!Array.isArray(indices)) return [sources[0]];
+
+    const selected = indices
+      .filter(i => Number.isInteger(i) && i >= 1 && i <= sources.length)
+      .map(i => sources[i - 1]);
+
+    // DIAGNOSTIIKKA — poista kun toimii
+    console.log(`\n=== SOURCE SELECTION ===`);
+    console.log(`Question: "${question}"`);
+    console.log(`Total sources available: ${sources.length}`);
+    console.log(`Selected (${selected.length}):`, selected.map(s => ({
+      title: s.title || s.parent,
+      type: s.type,
+    })));
+    console.log(`========================\n`);
+
+    return selected;
+
+  } catch (err) {
+    console.error("selectRelevantSources failed:", err.message);
+    return sources.slice(0, 2);
   }
-    // Ensure api_context contains a non-empty summary; fallback to a short excerpt
-    let apiContextText = '';
-    if (parsed && typeof parsed.api_context === 'string' && parsed.api_context.trim()) {
-      apiContextText = parsed.api_context.trim();
-    } else if (parsed && parsed.api_context && typeof parsed.api_context.text === 'string' && parsed.api_context.text.trim()) {
-      apiContextText = parsed.api_context.text.trim();
-    } else if (documentText && documentText.length > 0) {
-      // fallback: take first 1000 characters and trim to sentence
-      apiContextText = documentText.slice(0, 1000).replace(/\s+/g, ' ').trim();
-      const lastPeriod = apiContextText.lastIndexOf('.');
-      if (lastPeriod > 200) apiContextText = apiContextText.slice(0, lastPeriod + 1);
-    }
-
-    // Use language from Claude when provided; treat 'unknown' as missing and default to 'fi'
-    let language = (parsed && parsed.language);
-    if (!language || language === 'unknown') language = 'fi';
-
-    return {
-      active: true,
-      api_context: apiContextText,
-      category: category || 'Other Documents',
-      content: documentText?.slice(0, 150000) || '',
-      language: language || 'unknown',
-      title: title || 'User Provided Title',
-      type: 'law',
-      url: url || '',
-    };
 };
 
-module.exports = { askClaude, generateApiContext };
+// Generoi api_context automaattisesti PDF-uploadille
+const generateApiContext = async (text, fileName, fileUrl) => {
+  try {
+    const message = await client.messages.create({
+      model: FAST_MODEL,
+      max_tokens: 500,
+      temperature: 0.1,
+      messages: [{
+        role: "user",
+        content: `Lue seuraava suomalainen lakiteksti tai asiakirja ja kirjoita lyhyt api_context-kuvaus suomeksi.
+Kuvauksen tulee kertoa mitä kysymyksiä tästä lähteestä voi vastata.
+Palauta VAIN JSON-objekti ilman markdownia:
+{"api_context": "...", "category": "...", "language": "fi", "active": true, "type": "law"}
+
+Tiedosto: ${fileName}
+Teksti: ${text.slice(0, 5000)}`
+      }]
+    });
+
+    const raw = message.content[0].text.trim().replace(/```json|```/g, '').trim();
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error("generateApiContext failed:", err.message);
+    return {
+      api_context: `Lähde: ${fileName}`,
+      category: 'Muut asiakirjat',
+      language: 'fi',
+      active: true,
+      type: 'law',
+    };
+  }
+};
+
+module.exports = { askClaude, selectRelevantSources, generateApiContext };
