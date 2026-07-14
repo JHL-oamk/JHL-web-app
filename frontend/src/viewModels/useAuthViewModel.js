@@ -7,7 +7,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
-import { loginApi, registerApi, logoutApi, loginWithGoogleApi } from '../models/authApi';
+import { loginApi, registerApi, logoutApi, loginWithGoogleApi, deleteUserApi } from '../models/authApi';
 
 export const useAuthViewModel = () => {
   const [user, setUser] = useState(null);
@@ -146,6 +146,30 @@ export const useAuthViewModel = () => {
     }
   }, []);
 
+  const deleteUser = useCallback(async (password) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await deleteUserApi(password);
+
+      if (response.success) {
+        setUser(null);
+        setIsAuthenticated(false);
+        return { success: true, message: response.message };
+      } else {
+        setError(response.message);
+        return { success: false, message: response.message };
+      }
+    } catch (err) {
+      const errorMessage = 'An error occurred while deleting the account';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -159,6 +183,7 @@ export const useAuthViewModel = () => {
     login,
     register,
     logout,
+    deleteUser,
     clearError,
     loginWithGoogle,
   };

@@ -19,4 +19,13 @@ const getUser = async (uid) => {
   }
 };
 
-module.exports = { createUser, getUser };
+const deleteUser = async (uid) => {
+  try {
+    await db.collection('users').doc(uid).delete();
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw error;
+  }
+};
+
+module.exports = { createUser, getUser, deleteUser };

@@ -62,7 +62,16 @@
     "join_organisation": "Liity organisaatioon",
     "logout": "Kirjaudu ulos",
     "delete_account": "POISTA TILI",
-    "delete_confirm": "Haluatko varmasti poistaa tilisi? Tätä toimintoa ei voi peruuttaa."
+    "delete_confirm": "Haluatko varmasti poistaa tilisi? Tätä toimintoa ei voi peruuttaa.",
+    "delete_account_title": "Poista tili",
+    "delete_account_warning": "Syötä salasanasi jatkaaksesi.",
+    "delete_account_warning_google": "Haluatko varmasti poistaa tämän tilin?",
+    "enter_password": "Salasana",
+    "cancel": "Peruuta",
+    "delete": "Poista",
+    "deleting": "Poistetaan...",
+    "password_required": "Syötä salasanasi",
+    "delete_error": "Tiliä ei voitu poistaa"
   },
   "admin": {
     "title": "Hallinta",

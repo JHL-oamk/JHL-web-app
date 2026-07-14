@@ -62,7 +62,16 @@
     "join_organisation": "Join organisation",
     "logout": "Log Out",
     "delete_account": "DELETE ACCOUNT",
-    "delete_confirm": "Are you sure you want to delete your account? This action cannot be undone."
+    "delete_confirm": "Are you sure you want to delete your account? This action cannot be undone.",
+    "delete_account_title": "Delete account",
+    "delete_account_warning": "Enter your password to continue.",
+    "delete_account_warning_google": "Are you sure you want to delete this account?",
+    "enter_password": "Password",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "password_required": "Please enter your password",
+    "delete_error": "Could not delete the account"
   },
   "admin": {
     "title": "Admin",
