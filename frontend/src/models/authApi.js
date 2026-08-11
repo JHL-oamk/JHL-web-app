@@ -9,6 +9,9 @@ import {
   sendPasswordResetEmail,
   GoogleAuthProvider,
   signInWithPopup,
+  deleteUser as firebaseDeleteUser,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from "firebase/auth";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -176,6 +179,55 @@ export const loginWithGoogleApi = async () => {
     localStorage.setItem("authToken", token);
 
     return new AuthResponse(true, "Google login successful", user, token);
+
+  } catch (error) {
+    return new AuthResponse(false, error.message, null, null);
+  }
+};
+
+/**
+ * Delete Account API
+ */
+export const deleteUserApi = async (password) => {
+  try {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) {
+      return new AuthResponse(false, "No user logged in", null, null);
+    }
+
+    const isGoogleUser = firebaseUser.providerData?.some((provider) => provider.providerId === 'google.com');
+
+    if (!isGoogleUser) {
+      if (!password) {
+        return new AuthResponse(false, "Please enter your password to confirm deletion.", null, null);
+      }
+
+      try {
+        const credential = EmailAuthProvider.credential(firebaseUser.email, password);
+        await reauthenticateWithCredential(firebaseUser, credential);
+      } catch (reauthError) {
+        return new AuthResponse(false, "Invalid password. Please try again.", null, null);
+      }
+    }
+
+    const { headers } = await getAuthHeaders(firebaseUser);
+
+    // Delete user from backend database
+    const response = await fetch(`${API_URL}/api/users/${firebaseUser.uid}`, {
+      method: 'DELETE',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return new AuthResponse(false, errorData.error || "Failed to delete user account", null, null);
+    }
+
+    // Delete Firebase user account
+    await firebaseDeleteUser(firebaseUser);
+    localStorage.removeItem("authToken");
+
+    return new AuthResponse(true, "Account deleted successfully", null, null);
 
   } catch (error) {
     return new AuthResponse(false, error.message, null, null);

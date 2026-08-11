@@ -61,6 +61,14 @@ export const ResetPassword = ({ authViewModel }) => {
             </div>
           )}
 
+          {vm.isGoogleUser && !showSuccess && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-400 rounded-2xl">
+              <p className="text-black text-[12px] font-medium">
+                Google sign-in users cannot use password reset.
+              </p>
+            </div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="mt-8">
             <p className="text-[12px] leading-relaxed font-medium mb-6" style={{ color: colors.darkGrey }}>
@@ -82,7 +90,7 @@ export const ResetPassword = ({ authViewModel }) => {
                   placeholder=""
                   autoComplete="email"
                   required={false}
-                  disabled={vm.loading || vm.cooldown > 0 || showSuccess}
+                  disabled={vm.loading || vm.cooldown > 0 || showSuccess || vm.isGoogleUser}
                 />
 
                 <div className="text-center my-6">
@@ -93,8 +101,8 @@ export const ResetPassword = ({ authViewModel }) => {
 
                 <Button
                   type="submit"
-                  disabled={isDisabled}
-                  className={`mt-4 ${vm.cooldown > 0 || vm.loading ? 'bg-gray-400 text-gray-700' : ''}`}
+                  disabled={isDisabled || vm.isGoogleUser}
+                  className={`mt-4 ${vm.cooldown > 0 || vm.loading || vm.isGoogleUser ? 'bg-gray-400 text-gray-700' : ''}`}
                 >
                   {vm.cooldown > 0 ? t('reset_password.wait', { seconds: vm.cooldown }) : t('reset_password.submit')}
                 </Button>

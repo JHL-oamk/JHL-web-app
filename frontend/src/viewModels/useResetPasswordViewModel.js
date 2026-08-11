@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../config/firebase';
 import { resetPasswordApi } from '../models/authApi';
 
 export function useResetPasswordViewModel() {
@@ -6,6 +8,7 @@ export function useResetPasswordViewModel() {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isGoogleUser, setIsGoogleUser] = useState(false);
 
   const [cooldown, setCooldown] = useState(0);
 
@@ -29,7 +32,14 @@ export function useResetPasswordViewModel() {
       }
     }
 
-    return () => clearInterval(intervalRef.current);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsGoogleUser(user?.providerData?.some((provider) => provider.providerId === 'google.com') || false);
+    });
+
+    return () => {
+      unsubscribe();
+      clearInterval(intervalRef.current);
+    };
   }, []);
 
   const onEmailChange = (value) => {
@@ -89,6 +99,11 @@ export function useResetPasswordViewModel() {
     if (loading || cooldown > 0) return false;
     if (!validate()) return false;
 
+    if (isGoogleUser) {
+      setErrorMessage('Google sign-in users cannot use password reset.');
+      return false;
+    }
+
     try {
       setLoading(true);
       setErrorMessage('');
@@ -130,6 +145,7 @@ export function useResetPasswordViewModel() {
     errorMessage,
     cooldown,
     canSubmit,
+    isGoogleUser,
 
     onEmailChange,
     resetPassword,

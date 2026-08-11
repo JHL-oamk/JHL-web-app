@@ -1,4 +1,4 @@
-const { createUser, getUser } = require('../services/userService.js');
+const { createUser, getUser, deleteUser } = require('../services/userService.js');
 
 const createUserController = async (req, res) => {
   try {
@@ -20,4 +20,13 @@ const getUserController = async (req, res) => {
   }
 };
 
-module.exports = { createUserController, getUserController };
+const deleteUserController = async (req, res) => {
+  try {
+    await deleteUser(req.params.uid);
+    res.status(200).json({ message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+module.exports = { createUserController, getUserController, deleteUserController };
