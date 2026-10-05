@@ -24,3 +24,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JHL_PROJECT_4FF62 }}
           channelId: live
           projectId: jhl-project-4ff62
+          entryPoint: ./frontend
